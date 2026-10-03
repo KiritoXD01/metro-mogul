@@ -1,4 +1,5 @@
 import { Hammer, X } from 'lucide-react';
+import { useTranslation } from '@/hooks/use-translation';
 import { BUILDING_TYPES } from '../buildings';
 import type { GridItem } from '../types';
 
@@ -21,6 +22,7 @@ export default function InspectionModal({
     onCollect,
     onDemolish,
 }: InspectionModalProps) {
+    const { t } = useTranslation();
     const bDef = BUILDING_TYPES[building.type];
     if (!bDef) return null;
     const Icon = bDef.icon;
@@ -51,7 +53,7 @@ export default function InspectionModal({
                         </div>
                         <div>
                             <h3 className="text-base font-bold text-slate-100">
-                                {bDef.name}
+                                {t(`building.${building.type}.name`, bDef.name)}
                             </h3>
                             <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
                                 {bDef.category}
@@ -67,7 +69,7 @@ export default function InspectionModal({
                 </div>
 
                 <p className="mb-4 text-xs leading-relaxed text-slate-300">
-                    {bDef.description}
+                    {t(`building.${building.type}.description`, bDef.description)}
                 </p>
 
                 {/* Construction Status Card */}
@@ -76,9 +78,9 @@ export default function InspectionModal({
                         <div className="flex items-center justify-between text-xs font-bold text-amber-300">
                             <span className="flex items-center gap-1.5">
                                 <Hammer className="h-4 w-4 animate-bounce" />
-                                Under Construction
+                                {t('inspect.under_construction')}
                             </span>
-                            <span>{buildTimeLeft}s remaining</span>
+                            <span>{t('inspect.remaining', { seconds: `${buildTimeLeft}s` })}</span>
                         </div>
                         <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
                             <div
@@ -89,8 +91,7 @@ export default function InspectionModal({
                             />
                         </div>
                         <p className="text-[11px] text-slate-400">
-                            Workers and cranes are assembling the structure. You
-                            will be notified upon completion!
+                            {t('inspect.workers')}
                         </p>
                     </div>
                 ) : (
@@ -98,17 +99,17 @@ export default function InspectionModal({
                         {bDef.population > 0 && (
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-400">
-                                    Citizen Capacity
+                                    {t('inspect.capacity')}
                                 </span>
                                 <span className="font-bold text-blue-300">
-                                    +{bDef.population} Citizens
+                                    +{bDef.population} {t('inspect.citizens')}
                                 </span>
                             </div>
                         )}
                         {bDef.income > 0 && (
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-400">
-                                    Cycle Income
+                                    {t('inspect.cycle_income')}
                                 </span>
                                 <span className="font-bold text-emerald-400">
                                     +${bDef.income}
@@ -118,7 +119,7 @@ export default function InspectionModal({
                         {bDef.timer > 0 && (
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-400">
-                                    Income Status
+                                    {t('inspect.income_status')}
                                 </span>
                                 <span
                                     className={`font-bold ${
@@ -128,8 +129,8 @@ export default function InspectionModal({
                                     }`}
                                 >
                                     {building.isReady
-                                        ? '💰 Money Ready to Collect!'
-                                        : `${harvestLeft}s remaining`}
+                                        ? `💰 ${t('inspect.money_ready')}`
+                                        : t('inspect.remaining', { seconds: `${harvestLeft}s` })}
                                 </span>
                             </div>
                         )}
@@ -142,14 +143,14 @@ export default function InspectionModal({
                             onClick={() => onCollect(building.key)}
                             className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white shadow-lg transition-all hover:bg-emerald-500"
                         >
-                            Collect ${bDef.income}
+                            {t('inspect.collect')} ${bDef.income}
                         </button>
                     )}
                     <button
                         onClick={() => onDemolish(building.key)}
                         className="flex-1 rounded-xl border border-rose-500/40 bg-rose-600/20 py-2.5 text-xs font-bold text-rose-300 transition-all hover:bg-rose-600 hover:text-white"
                     >
-                        {isConstructed ? 'Demolish' : 'Cancel Construction'}
+                        {isConstructed ? t('inspect.demolish') : t('inspect.cancel_construction')}
                     </button>
                 </div>
             </div>

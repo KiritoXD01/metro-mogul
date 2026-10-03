@@ -42,6 +42,28 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'locale' => app()->getLocale(),
+            'availableLocales' => config('app.available_locales', ['en']),
+            'translations' => $this->translations(),
         ];
+    }
+
+    /**
+     * Load the current locale's UI dictionary for the React frontend.
+     *
+     * @return array<string, string>
+     */
+    protected function translations(): array
+    {
+        $locale = app()->getLocale();
+        $path = lang_path("{$locale}.json");
+
+        if (! is_file($path)) {
+            return [];
+        }
+
+        $decoded = json_decode((string) file_get_contents($path), true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 }

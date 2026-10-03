@@ -7,16 +7,14 @@ import SecurityController from '@/actions/App/Http/Controllers/Settings/Security
 import AppearanceTabs from '@/components/appearance-tabs';
 import DeleteUser from '@/components/delete-user';
 import InputError from '@/components/input-error';
-import ManagePasskeys from '@/components/manage-passkeys';
-import type { Props as ManagePasskeysProps } from '@/components/manage-passkeys';
-import ManageTwoFactor from '@/components/manage-two-factor';
-import type { Props as ManageTwoFactorProps } from '@/components/manage-two-factor';
+import LanguageSwitcher from '@/components/language-switcher';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { logout } from '@/routes';
 import { send } from '@/routes/verification';
+import { useTranslation } from '@/hooks/use-translation';
 import type { Auth } from '@/types';
 import {
     Crown,
@@ -35,14 +33,13 @@ type ProfileSettingsModalProps = {
     status?: string;
     passwordRules: string;
     onClose: () => void;
-} & ManagePasskeysProps &
-    ManageTwoFactorProps;
+};
 
-const tabs: { value: SettingsTab; label: string; icon: typeof User }[] = [
-    { value: 'profile', label: 'Profile', icon: User },
-    { value: 'security', label: 'Security', icon: ShieldCheck },
-    { value: 'appearance', label: 'Appearance', icon: Palette },
-    { value: 'delete', label: 'Delete', icon: Trash2 },
+const tabs: { value: SettingsTab; labelKey: string; icon: typeof User }[] = [
+    { value: 'profile', labelKey: 'settings.tab_profile', icon: User },
+    { value: 'security', labelKey: 'settings.tab_security', icon: ShieldCheck },
+    { value: 'appearance', labelKey: 'settings.tab_appearance', icon: Palette },
+    { value: 'delete', labelKey: 'settings.tab_delete', icon: Trash2 },
 ];
 
 const inputClassName =
@@ -72,12 +69,13 @@ function ProfileTab({
     status?: string;
 }) {
     const { auth } = usePage<{ auth: Auth }>().props;
+    const { t } = useTranslation();
 
     return (
         <div className="space-y-6">
             <ModalHeading
-                title="Profile"
-                description="Update your name and email address"
+                title={t('settings.profile')}
+                description={t('settings.profile_desc')}
             />
 
             <Form
@@ -85,14 +83,14 @@ function ProfileTab({
                 options={{
                     preserveScroll: true,
                 }}
-                onSuccess={() => toast.success('Profile updated.')}
+                onSuccess={() => toast.success(t('settings.profile_updated'))}
                 className="space-y-6"
             >
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-2">
                             <Label htmlFor="name" className={labelClassName}>
-                                Name
+                                {t('settings.name')}
                             </Label>
 
                             <Input
@@ -102,7 +100,7 @@ function ProfileTab({
                                 name="name"
                                 required
                                 autoComplete="name"
-                                placeholder="Full name"
+                                placeholder={t('settings.full_name')}
                             />
 
                             <InputError
@@ -113,7 +111,7 @@ function ProfileTab({
 
                         <div className="grid gap-2">
                             <Label htmlFor="email" className={labelClassName}>
-                                Email address
+                                {t('settings.email_address')}
                             </Label>
 
                             <Input
@@ -124,7 +122,7 @@ function ProfileTab({
                                 name="email"
                                 required
                                 autoComplete="username"
-                                placeholder="Email address"
+                                placeholder={t('settings.email_address')}
                             />
 
                             <InputError
@@ -137,21 +135,19 @@ function ProfileTab({
                             auth.user.email_verified_at === null && (
                                 <div>
                                     <p className="-mt-4 text-sm text-slate-400">
-                                        Your email address is unverified.{' '}
+                                        {t('settings.unverified')}{' '}
                                         <Link
                                             href={send()}
                                             as="button"
                                             className="text-indigo-300 underline decoration-slate-500 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current!"
                                         >
-                                            Click here to re-send the
-                                            verification email.
+                                            {t('settings.resend')}
                                         </Link>
                                     </p>
 
                                     {status === 'verification-link-sent' && (
                                         <div className="mt-2 text-sm font-medium text-emerald-400">
-                                            A new verification link has been
-                                            sent to your email address.
+                                            {t('settings.link_sent')}
                                         </div>
                                     )}
                                 </div>
@@ -162,7 +158,7 @@ function ProfileTab({
                                 disabled={processing}
                                 data-test="update-profile-button"
                             >
-                                Save
+                                {t('settings.save')}
                             </Button>
                         </div>
                     </>
@@ -172,10 +168,8 @@ function ProfileTab({
     );
 }
 
-function SecurityTab(
-    props: ManagePasskeysProps &
-        ManageTwoFactorProps & { passwordRules: string },
-) {
+function SecurityTab({ passwordRules }: { passwordRules: string }) {
+    const { t } = useTranslation();
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
 
@@ -183,8 +177,8 @@ function SecurityTab(
         <div className="space-y-8">
             <div className="space-y-6">
                 <ModalHeading
-                    title="Update password"
-                    description="Ensure your account is using a long, random password to stay secure"
+                    title={t('settings.update_password')}
+                    description={t('settings.update_password_desc')}
                 />
 
                 <Form
@@ -207,7 +201,7 @@ function SecurityTab(
                             currentPasswordInput.current?.focus();
                         }
                     }}
-                    onSuccess={() => toast.success('Password updated.')}
+                    onSuccess={() => toast.success(t('settings.password_updated'))}
                     className="space-y-6"
                 >
                     {({ errors, processing }) => (
@@ -217,7 +211,7 @@ function SecurityTab(
                                     htmlFor="current_password"
                                     className={labelClassName}
                                 >
-                                    Current password
+                                    {t('settings.current_password')}
                                 </Label>
 
                                 <PasswordInput
@@ -226,7 +220,7 @@ function SecurityTab(
                                     name="current_password"
                                     className={inputClassName}
                                     autoComplete="current-password"
-                                    placeholder="Current password"
+                                    placeholder={t('settings.current_password')}
                                 />
 
                                 <InputError message={errors.current_password} />
@@ -237,7 +231,7 @@ function SecurityTab(
                                     htmlFor="password"
                                     className={labelClassName}
                                 >
-                                    New password
+                                    {t('settings.new_password')}
                                 </Label>
 
                                 <PasswordInput
@@ -246,8 +240,8 @@ function SecurityTab(
                                     name="password"
                                     className={inputClassName}
                                     autoComplete="new-password"
-                                    placeholder="New password"
-                                    passwordrules={props.passwordRules}
+                                    placeholder={t('settings.new_password')}
+                                    passwordrules={passwordRules}
                                 />
 
                                 <InputError message={errors.password} />
@@ -258,7 +252,7 @@ function SecurityTab(
                                     htmlFor="password_confirmation"
                                     className={labelClassName}
                                 >
-                                    Confirm password
+                                    {t('settings.confirm_password')}
                                 </Label>
 
                                 <PasswordInput
@@ -266,8 +260,8 @@ function SecurityTab(
                                     name="password_confirmation"
                                     className={inputClassName}
                                     autoComplete="new-password"
-                                    placeholder="Confirm password"
-                                    passwordrules={props.passwordRules}
+                                    placeholder={t('settings.confirm_password')}
+                                    passwordrules={passwordRules}
                                 />
 
                                 <InputError
@@ -280,36 +274,34 @@ function SecurityTab(
                                     disabled={processing}
                                     data-test="update-password-button"
                                 >
-                                    Save
+                                    {t('settings.save')}
                                 </Button>
                             </div>
                         </>
                     )}
                 </Form>
             </div>
-
-            <ManageTwoFactor
-                canManageTwoFactor={props.canManageTwoFactor}
-                requiresConfirmation={props.requiresConfirmation}
-                twoFactorEnabled={props.twoFactorEnabled}
-            />
-
-            <ManagePasskeys
-                canManagePasskeys={props.canManagePasskeys}
-                passkeys={props.passkeys}
-            />
         </div>
     );
 }
 
 function AppearanceTab() {
+    const { t } = useTranslation();
+
     return (
         <div className="space-y-6">
             <ModalHeading
-                title="Appearance settings"
-                description="Update the appearance settings for your account"
+                title={t('settings.appearance')}
+                description={t('settings.appearance_desc')}
             />
             <AppearanceTabs />
+            <div className="space-y-3">
+                <ModalHeading
+                    title={t('settings.language')}
+                    description={t('settings.language_desc')}
+                />
+                <LanguageSwitcher />
+            </div>
         </div>
     );
 }
@@ -318,13 +310,9 @@ export default function ProfileSettingsModal({
     mustVerifyEmail,
     status,
     passwordRules,
-    canManageTwoFactor,
-    canManagePasskeys,
-    passkeys,
-    twoFactorEnabled,
-    requiresConfirmation,
     onClose,
 }: ProfileSettingsModalProps) {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
 
     useEffect(() => {
@@ -354,24 +342,24 @@ export default function ProfileSettingsModal({
                         </div>
                         <div>
                             <h3 className="text-lg font-bold text-white">
-                                Mayor Settings
+                                {t('settings.mayor_settings')}
                             </h3>
                             <p className="text-[11px] text-slate-400">
-                                Manage your profile and account settings
+                                {t('settings.manage_desc')}
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
                         className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
-                        aria-label="Close settings"
+                        aria-label={t('settings.close')}
                     >
                         <X className="h-5 w-5" />
                     </button>
                 </div>
 
                 <div className="mb-6 flex gap-1 rounded-xl border border-slate-700/60 bg-slate-800/60 p-1">
-                    {tabs.map(({ value, label, icon: Icon }) => (
+                    {tabs.map(({ value, labelKey, icon: Icon }) => (
                         <button
                             key={value}
                             type="button"
@@ -383,7 +371,7 @@ export default function ProfileSettingsModal({
                             }`}
                         >
                             <Icon className="h-4 w-4" />
-                            <span className="hidden sm:inline">{label}</span>
+                            <span className="hidden sm:inline">{t(labelKey)}</span>
                         </button>
                     ))}
                 </div>
@@ -396,14 +384,7 @@ export default function ProfileSettingsModal({
                 )}
 
                 {activeTab === 'security' && (
-                    <SecurityTab
-                        passwordRules={passwordRules}
-                        canManageTwoFactor={canManageTwoFactor}
-                        requiresConfirmation={requiresConfirmation}
-                        twoFactorEnabled={twoFactorEnabled}
-                        canManagePasskeys={canManagePasskeys}
-                        passkeys={passkeys}
-                    />
+                    <SecurityTab passwordRules={passwordRules} />
                 )}
 
                 {activeTab === 'appearance' && <AppearanceTab />}
@@ -419,14 +400,14 @@ export default function ProfileSettingsModal({
                         className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-slate-400 transition-all hover:bg-slate-800 hover:text-rose-300"
                     >
                         <LogOut className="h-4 w-4" />
-                        Sign out
+                        {t('settings.sign_out')}
                     </Link>
                     <button
                         type="button"
                         onClick={onClose}
                         className="rounded-xl bg-slate-700 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-slate-600"
                     >
-                        Done
+                        {t('settings.done')}
                     </button>
                 </div>
             </div>

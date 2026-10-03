@@ -3,8 +3,8 @@ import type { BuildingDefinition } from './types';
 
 export const GRID_SIZE = 12;
 
-export const formatDuration = (seconds: number): string => {
-    if (seconds <= 0) return 'Instant';
+export const formatDuration = (seconds: number, instant = 'Instant'): string => {
+    if (seconds <= 0) return instant;
     if (seconds < 60) return `${seconds}s`;
     const mins = Math.floor(seconds / 60);
     const remainingSecs = seconds % 60;

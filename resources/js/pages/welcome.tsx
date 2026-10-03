@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
 import InputError from '@/components/input-error';
+import LanguageSwitcher from '@/components/language-switcher';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -17,9 +18,9 @@ import { Spinner } from '@/components/ui/spinner';
 import { dashboard, logout } from '@/routes';
 import { store as loginStore } from '@/routes/login';
 import { store as registerStore } from '@/routes/register';
-import { request as passwordRequest } from '@/routes/password';
 import { edit as profileEdit } from '@/routes/profile';
 import { BUILDING_TYPES } from '@/components/game/buildings';
+import { useTranslation } from '@/hooks/use-translation';
 import type { Auth } from '@/types';
 import {
     ArrowRight,
@@ -39,8 +40,8 @@ import {
     ChevronUp,
 } from 'lucide-react';
 
-function formatBuildTime(seconds?: number): string {
-    if (!seconds) return 'Instant';
+function formatBuildTime(seconds?: number, instant = 'Instant'): string {
+    if (!seconds) return instant;
     if (seconds < 60) return `${seconds}s`;
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -52,6 +53,7 @@ const SIGNATURE_BUILDING_IDS = ['small_house', 'coffee_shop', 'villa', 'tech_off
 
 export default function Welcome() {
     const { auth } = usePage<{ auth: Auth }>().props;
+    const { t } = useTranslation();
     const user = auth?.user;
 
     const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -96,17 +98,18 @@ export default function Welcome() {
                     </div>
 
                     <div className="flex items-center gap-4">
+                        <LanguageSwitcher />
                         <a
                             href="#gameplay"
                             className="hidden text-xs font-semibold text-slate-400 transition-colors hover:text-white md:inline-block"
                         >
-                            Gameplay
+                            {t('nav.gameplay')}
                         </a>
                         <a
                             href="#blueprints"
                             className="hidden text-xs font-semibold text-slate-400 transition-colors hover:text-white md:inline-block"
                         >
-                            Blueprints
+                            {t('nav.blueprints')}
                         </a>
 
                         {user ? (
@@ -116,7 +119,7 @@ export default function Welcome() {
                                     className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 px-4 py-2 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-amber-300"
                                 >
                                     <Play className="h-3.5 w-3.5 fill-current" />
-                                    <span>Resume City</span>
+                                    <span>{t('nav.resume_city')}</span>
                                 </Link>
                                 <Link
                                     href={profileEdit()}
@@ -141,13 +144,13 @@ export default function Welcome() {
                                     onClick={() => openAuthModal('login')}
                                     className="rounded-xl px-3.5 py-2 text-xs font-bold text-slate-300 transition-all hover:bg-slate-900 hover:text-white"
                                 >
-                                    Mayor Log In
+                                    {t('nav.mayor_login')}
                                 </button>
                                 <button
                                     onClick={() => openAuthModal('register')}
                                     className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 px-4 py-2 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-300"
                                 >
-                                    <span>Start City</span>
+                                    <span>{t('nav.start_city')}</span>
                                     <ArrowRight className="h-3.5 w-3.5" />
                                 </button>
                             </div>
@@ -161,22 +164,20 @@ export default function Welcome() {
                 {/* Game Pill Badge */}
                 <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-slate-900/90 px-3.5 py-1.5 text-xs font-bold text-amber-300 shadow-inner">
                     <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                    <span>3D Isometric City Builder • Browser WebGL</span>
+                    <span>{t('hero.badge')}</span>
                 </div>
 
                 {/* Main Headline */}
                 <h1 className="mx-auto mt-6 max-w-4xl text-4xl leading-[1.1] font-black tracking-tight sm:text-5xl lg:text-6xl">
-                    Build, Harvest & Expand <br />
+                    {t('hero.title_a')} <br />
                     <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-indigo-400 bg-clip-text text-transparent">
-                        Your Living 3D Metropolis
+                        {t('hero.title_b')}
                     </span>
                 </h1>
 
                 {/* Game Subtitle */}
                 <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
-                    Lay asphalt networks, zone cozy cottages and towering tech offices,
-                    watch construction cranes erect buildings in real-time, and harvest
-                    floating gold coins directly in your browser.
+                    {t('hero.subtitle')}
                 </p>
 
                 {/* Action CTAs */}
@@ -187,7 +188,7 @@ export default function Welcome() {
                             className="flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 px-7 py-3.5 text-sm font-black tracking-wide text-slate-950 shadow-xl shadow-amber-500/30 transition-all hover:from-amber-400 hover:to-yellow-300"
                         >
                             <Play className="h-4 w-4 fill-current" />
-                            <span>ENTER METROPOLIS</span>
+                            <span>{t('hero.return_city')}</span>
                         </Link>
                     ) : (
                         <>
@@ -196,13 +197,13 @@ export default function Welcome() {
                                 className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 px-7 py-3.5 text-sm font-black tracking-wide text-slate-950 shadow-xl shadow-amber-500/30 transition-all hover:from-amber-400 hover:to-yellow-300"
                             >
                                 <Play className="h-4 w-4 fill-current" />
-                                <span>START YOUR CITY — FREE</span>
+                                <span>{t('hero.start_free')}</span>
                             </button>
                             <button
                                 onClick={() => openAuthModal('login')}
                                 className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/80 px-6 py-3.5 text-sm font-bold text-slate-200 backdrop-blur-sm transition-all hover:bg-slate-800 hover:text-white"
                             >
-                                <span>Mayor Log In</span>
+                                <span>{t('nav.mayor_login')}</span>
                             </button>
                         </>
                     )}
@@ -210,7 +211,7 @@ export default function Welcome() {
                         href="#blueprints"
                         className="flex items-center gap-1.5 rounded-2xl px-5 py-3.5 text-sm font-semibold text-slate-400 transition-colors hover:text-white"
                     >
-                        <span>Explore Blueprints</span>
+                        <span>{t('hero.explore_blueprints')}</span>
                         <ArrowRight className="h-4 w-4" />
                     </a>
                 </div>
@@ -219,19 +220,19 @@ export default function Welcome() {
                 <div className="mx-auto mt-10 flex max-w-3xl flex-wrap items-center justify-center gap-6 text-xs text-slate-400">
                     <div className="flex items-center gap-2">
                         <Gamepad2 className="h-4 w-4 text-indigo-400" />
-                        <span>Interactive Three.js Isometric Viewport</span>
+                        <span>{t('hero.spec_viewport')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Coins className="h-4 w-4 text-emerald-400" />
-                        <span>Real-time Rent Harvest Cycles</span>
+                        <span>{t('hero.spec_rent')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Volume2 className="h-4 w-4 text-amber-400" />
-                        <span>Custom Web Audio FX</span>
+                        <span>{t('hero.spec_audio')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Layers className="h-4 w-4 text-purple-400" />
-                        <span>Cloud Auto-Save</span>
+                        <span>{t('hero.spec_save')}</span>
                     </div>
                 </div>
 
@@ -245,17 +246,17 @@ export default function Welcome() {
                                 <div className="h-3 w-3 rounded-full bg-amber-500/80" />
                                 <div className="h-3 w-3 rounded-full bg-emerald-500/80" />
                                 <span className="ml-2 hidden font-mono text-xs font-semibold text-slate-400 sm:inline">
-                                    Metro Mogul 3D Engine • Level 4 Metropolis
+                                    {t('showcase.engine')}
                                 </span>
                             </div>
 
                             <div className="flex items-center gap-3">
                                 <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[11px] font-bold text-emerald-400">
                                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                                    Active Simulation
+                                    {t('showcase.active')}
                                 </span>
                                 <span className="font-mono text-xs font-extrabold text-amber-400">
-                                    $2,050 Treasury
+                                    $2,050 {t('showcase.treasury')}
                                 </span>
                             </div>
                         </div>
@@ -271,16 +272,16 @@ export default function Welcome() {
                             {/* Floating Visual Annotations */}
                             <div className="pointer-events-none absolute top-4 left-4 hidden rounded-xl border border-slate-700/80 bg-slate-950/85 px-3 py-1.5 text-left text-xs font-bold text-slate-200 shadow-xl backdrop-blur-md md:block">
                                 <div className="text-[10px] font-semibold text-amber-400 uppercase">
-                                    3D Isometric City
+                                    {t('showcase.tag_3d')}
                                 </div>
-                                <div className="text-white">Procedural Buildings & Scaffolding</div>
+                                <div className="text-white">{t('showcase.procedural')}</div>
                             </div>
 
                             <div className="pointer-events-none absolute bottom-16 right-4 hidden rounded-xl border border-emerald-500/30 bg-slate-950/85 px-3 py-1.5 text-left text-xs font-bold text-slate-200 shadow-xl backdrop-blur-md md:block">
                                 <div className="text-[10px] font-semibold text-emerald-400 uppercase">
-                                    Harvest Ready
+                                    {t('showcase.harvest')}
                                 </div>
-                                <div className="text-white">Floating 3D Coins Ready to Collect</div>
+                                <div className="text-white">{t('showcase.coins_ready')}</div>
                             </div>
 
                             {/* Center Hover Action for Guests */}
@@ -291,7 +292,7 @@ export default function Welcome() {
                                         className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 px-6 py-3 text-xs font-black tracking-wider text-slate-950 uppercase shadow-2xl transition-all hover:scale-105"
                                     >
                                         <Play className="h-4 w-4 fill-current" />
-                                        <span>Build Your Own City</span>
+                                        <span>{t('hero.build_yours')}</span>
                                     </button>
                                 </div>
                             )}
@@ -308,13 +309,13 @@ export default function Welcome() {
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="mx-auto mb-14 max-w-2xl text-center">
                         <div className="mb-1 text-xs font-extrabold tracking-widest text-indigo-400 uppercase">
-                            Core Mechanics
+                            {t('pillars.eyebrow')}
                         </div>
                         <h2 className="text-3xl font-black text-white sm:text-4xl">
-                            How the Metropolis Thrives
+                            {t('pillars.title')}
                         </h2>
                         <p className="mt-2 text-sm text-slate-400">
-                            Build, harvest, and expand with an intuitive loop designed for aspiring urban tycoons.
+                            {t('pillars.subtitle')}
                         </p>
                     </div>
 
@@ -325,10 +326,10 @@ export default function Welcome() {
                                 <Hammer className="h-6 w-6" />
                             </div>
                             <h3 className="text-lg font-black text-white">
-                                1. Zone & Construct
+                                {t('pillars.p1_title')}
                             </h3>
                             <p className="mt-2.5 text-xs leading-relaxed text-slate-300">
-                                Lay asphalt roads and place residential cottages, luxury villas, and commercial hubs on a 12x12 grid. Watch tower cranes swing and scaffolding rise as construction jobs complete.
+                                {t('pillars.p1_body')}
                             </p>
                         </div>
 
@@ -338,10 +339,10 @@ export default function Welcome() {
                                 <Coins className="h-6 w-6" />
                             </div>
                             <h3 className="text-lg font-black text-white">
-                                2. Harvest 3D Rent Coins
+                                {t('pillars.p2_title')}
                             </h3>
                             <p className="mt-2.5 text-xs leading-relaxed text-slate-300">
-                                Cafes, highrises, and businesses generate steady revenue cycles. When rent is ready, a spinning 3D dollar token rises above the rooftop—click to harvest coins and Mayor XP!
+                                {t('pillars.p2_body')}
                             </p>
                         </div>
 
@@ -351,10 +352,10 @@ export default function Welcome() {
                                 <Trophy className="h-6 w-6" />
                             </div>
                             <h3 className="text-lg font-black text-white">
-                                3. Level Up & Cloud Save
+                                {t('pillars.p3_title')}
                             </h3>
                             <p className="mt-2.5 text-xs leading-relaxed text-slate-300">
-                                Level up your mayor tier to unlock prestige landmarks, green parks, and high-tech corporate offices. Your city state, treasury, and grid tiles continuously sync to your account.
+                                {t('pillars.p3_body')}
                             </p>
                         </div>
                     </div>
@@ -371,13 +372,13 @@ export default function Welcome() {
                         <div>
                             <div className="mb-1 flex items-center gap-1.5 text-xs font-extrabold tracking-widest text-amber-400 uppercase">
                                 <Building2 className="h-4 w-4" />
-                                <span>Blueprint Catalog</span>
+                                <span>{t('blueprints.eyebrow')}</span>
                             </div>
                             <h2 className="text-3xl font-black text-white sm:text-4xl">
-                                Architectural Blueprints
+                                {t('blueprints.title')}
                             </h2>
                             <p className="mt-2 max-w-xl text-sm text-slate-400">
-                                Unlock 9 distinct structures as your mayor level grows, each with unique population yields and revenue timers.
+                                {t('blueprints.subtitle')}
                             </p>
                         </div>
 
@@ -385,7 +386,7 @@ export default function Welcome() {
                             onClick={() => setShowAllBlueprints(!showAllBlueprints)}
                             className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-xs font-bold text-slate-300 transition-all hover:border-slate-700 hover:text-white"
                         >
-                            <span>{showAllBlueprints ? 'Show Signature 4 Only' : 'Show All 9 Blueprints'}</span>
+                            <span>{showAllBlueprints ? t('blueprints.show_signature') : t('blueprints.show_all')}</span>
                             {showAllBlueprints ? (
                                 <ChevronUp className="h-4 w-4" />
                             ) : (
@@ -414,14 +415,14 @@ export default function Welcome() {
                                                 </div>
                                                 <div>
                                                     <h3 className="text-sm font-bold text-white transition-colors group-hover:text-amber-300">
-                                                        {b.name}
+                                                        {t(`building.${b.id}.name`, b.name)}
                                                     </h3>
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                                                             {b.category}
                                                         </span>
                                                         <span className="inline-flex items-center rounded-md border border-amber-400/20 bg-amber-400/10 px-1.5 py-0.2 text-[9px] font-bold text-amber-300">
-                                                            Lvl {b.unlockLevel}
+                                                            {t('blueprints.level')} {b.unlockLevel}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -435,7 +436,7 @@ export default function Welcome() {
                                         </div>
 
                                         <p className="mb-4 text-xs leading-relaxed text-slate-300">
-                                            {b.description}
+                                            {t(`building.${b.id}.description`, b.description)}
                                         </p>
                                     </div>
 
@@ -443,15 +444,15 @@ export default function Welcome() {
                                     <div className="grid grid-cols-3 gap-1.5 border-t border-slate-800/80 pt-3 text-center">
                                         <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-1.5">
                                             <div className="text-[9px] font-medium text-slate-400">
-                                                Build
+                                                {t('blueprints.build')}
                                             </div>
                                             <div className="text-xs font-black text-amber-400">
-                                                {formatBuildTime(b.buildTime)}
+                                                {formatBuildTime(b.buildTime, t('shop.instant'))}
                                             </div>
                                         </div>
                                         <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-1.5">
                                             <div className="text-[9px] font-medium text-slate-400">
-                                                Income
+                                                {t('blueprints.income')}
                                             </div>
                                             <div className="text-xs font-black text-emerald-400">
                                                 {b.income > 0 ? `+$${b.income}` : '$0'}
@@ -459,7 +460,7 @@ export default function Welcome() {
                                         </div>
                                         <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-1.5">
                                             <div className="text-[9px] font-medium text-slate-400">
-                                                Citizens
+                                                {t('blueprints.citizens')}
                                             </div>
                                             <div className="text-xs font-black text-blue-300">
                                                 +{b.population}
@@ -480,10 +481,10 @@ export default function Welcome() {
                         <Crown className="h-7 w-7" />
                     </div>
                     <h2 className="mt-5 text-3xl font-black text-white sm:text-4xl">
-                        Your Metropolis Awaits Your Vision
+                        {t('cta.title')}
                     </h2>
                     <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-300">
-                        Join other mayors in founding bustling 3D cities. Start with a $2,500 initial treasury and build your skyline from the ground up.
+                        {t('cta.subtitle')}
                     </p>
                     <div className="mt-8 flex justify-center">
                         {user ? (
@@ -492,7 +493,7 @@ export default function Welcome() {
                                 className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 px-8 py-3.5 text-sm font-black tracking-wide text-slate-950 shadow-xl shadow-amber-500/30 transition-all hover:from-amber-400 hover:to-yellow-300"
                             >
                                 <Play className="h-4 w-4 fill-current" />
-                                <span>RETURN TO YOUR CITY</span>
+                                <span>{t('hero.return_city')}</span>
                             </Link>
                         ) : (
                             <button
@@ -500,7 +501,7 @@ export default function Welcome() {
                                 className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 px-8 py-3.5 text-sm font-black tracking-wide text-slate-950 shadow-xl shadow-amber-500/30 transition-all hover:from-amber-400 hover:to-yellow-300"
                             >
                                 <Play className="h-4 w-4 fill-current" />
-                                <span>FOUND YOUR CITY TODAY</span>
+                                <span>{t('cta.found_today')}</span>
                             </button>
                         )}
                     </div>
@@ -519,12 +520,12 @@ export default function Welcome() {
                     </div>
 
                     <div className="flex items-center gap-6">
-                        <span>Built with Three.js, React & Laravel 13</span>
+                        <span>{t('footer.built_with')}</span>
                         <a
                             href="#"
                             className="font-bold text-amber-400 hover:text-amber-300"
                         >
-                            Back to Top ↑
+                            {t('footer.back_top')}
                         </a>
                     </div>
                 </div>
@@ -536,15 +537,15 @@ export default function Welcome() {
                     <DialogHeader className="space-y-1 text-left">
                         <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase">
                             <Crown className="h-4 w-4" />
-                            <span>Mayor Headquarters</span>
+                            <span>{t('auth.hq')}</span>
                         </div>
                         <DialogTitle className="text-xl font-black text-white">
-                            {authTab === 'register' ? 'Found a New City' : 'Access Your City'}
+                            {authTab === 'register' ? t('auth.found_title') : t('auth.access_title')}
                         </DialogTitle>
                         <DialogDescription className="text-xs text-slate-400">
                             {authTab === 'register'
-                                ? 'Register your mayoral account with $2,500 initial treasury capital.'
-                                : 'Enter your credentials to resume city administration.'}
+                                ? t('auth.found_desc')
+                                : t('auth.access_desc')}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -559,7 +560,7 @@ export default function Welcome() {
                                     : 'text-slate-400 hover:text-white'
                             }`}
                         >
-                            Found City
+                            {t('auth.tab_found')}
                         </button>
                         <button
                             type="button"
@@ -570,7 +571,7 @@ export default function Welcome() {
                                     : 'text-slate-400 hover:text-white'
                             }`}
                         >
-                            Mayor Log In
+                            {t('auth.tab_login')}
                         </button>
                     </div>
 
@@ -589,7 +590,7 @@ export default function Welcome() {
                                             htmlFor="modal_reg_name"
                                             className="text-xs font-bold text-slate-300"
                                         >
-                                            Mayor Name
+                                            {t('auth.mayor_name')}
                                         </Label>
                                         <Input
                                             id="modal_reg_name"
@@ -597,7 +598,7 @@ export default function Welcome() {
                                             type="text"
                                             required
                                             autoFocus
-                                            placeholder="Mayor Alexander"
+                                            placeholder={t('auth.mayor_name_ph')}
                                             className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
                                         />
                                         <InputError message={errors.name} />
@@ -608,14 +609,14 @@ export default function Welcome() {
                                             htmlFor="modal_reg_email"
                                             className="text-xs font-bold text-slate-300"
                                         >
-                                            Email Address
+                                            {t('auth.email')}
                                         </Label>
                                         <Input
                                             id="modal_reg_email"
                                             name="email"
                                             type="email"
                                             required
-                                            placeholder="mayor@metropolis.gov"
+                                            placeholder={t('auth.email_ph')}
                                             className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
                                         />
                                         <InputError message={errors.email} />
@@ -627,7 +628,7 @@ export default function Welcome() {
                                                 htmlFor="modal_reg_password"
                                                 className="text-xs font-bold text-slate-300"
                                             >
-                                                Password
+                                                {t('auth.password')}
                                             </Label>
                                             <PasswordInput
                                                 id="modal_reg_password"
@@ -645,7 +646,7 @@ export default function Welcome() {
                                                 htmlFor="modal_reg_password_confirmation"
                                                 className="text-xs font-bold text-slate-300"
                                             >
-                                                Confirm
+                                                {t('auth.confirm')}
                                             </Label>
                                             <PasswordInput
                                                 id="modal_reg_password_confirmation"
@@ -669,7 +670,7 @@ export default function Welcome() {
                                         ) : (
                                             <Play className="mr-2 h-3.5 w-3.5 fill-current" />
                                         )}
-                                        Found Metropolis
+                                        {t('auth.found_metro')}
                                     </Button>
                                 </>
                             )}
@@ -689,7 +690,7 @@ export default function Welcome() {
                                             htmlFor="modal_login_email"
                                             className="text-xs font-bold text-slate-300"
                                         >
-                                            Email Address
+                                            {t('auth.email')}
                                         </Label>
                                         <Input
                                             id="modal_login_email"
@@ -697,7 +698,7 @@ export default function Welcome() {
                                             type="email"
                                             required
                                             autoFocus
-                                            placeholder="mayor@metropolis.gov"
+                                            placeholder={t('auth.email_ph')}
                                             className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
                                         />
                                         <InputError message={errors.email} />
@@ -709,14 +710,8 @@ export default function Welcome() {
                                                 htmlFor="modal_login_password"
                                                 className="text-xs font-bold text-slate-300"
                                             >
-                                                Password
+                                                {t('auth.password')}
                                             </Label>
-                                            <Link
-                                                href={passwordRequest()}
-                                                className="text-[11px] text-indigo-400 underline hover:text-indigo-300"
-                                            >
-                                                Forgot?
-                                            </Link>
                                         </div>
                                         <PasswordInput
                                             id="modal_login_password"
@@ -738,7 +733,7 @@ export default function Welcome() {
                                             htmlFor="modal_remember"
                                             className="text-xs text-slate-400"
                                         >
-                                            Remember this mayor terminal
+                                            {t('auth.remember')}
                                         </Label>
                                     </div>
 
@@ -752,7 +747,7 @@ export default function Welcome() {
                                         ) : (
                                             <Play className="mr-2 h-3.5 w-3.5 fill-current" />
                                         )}
-                                        Enter Metropolis
+                                        {t('auth.enter_metro')}
                                     </Button>
                                 </>
                             )}

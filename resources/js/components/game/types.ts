@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react';
-import type { Passkey } from '@/types/auth';
 
 export interface BuildingDefinition {
     id: string;
@@ -63,11 +62,6 @@ export interface GameSettingsProps {
     mustVerifyEmail: boolean;
     status?: string;
     passwordRules: string;
-    canManageTwoFactor?: boolean;
-    canManagePasskeys?: boolean;
-    passkeys?: Passkey[];
-    twoFactorEnabled?: boolean;
-    requiresConfirmation?: boolean;
 }
 
 export interface MetroCityGameProps {

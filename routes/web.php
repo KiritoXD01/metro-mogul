@@ -1,9 +1,12 @@
 <?php
 
 use App\Http\Controllers\CityController;
+use App\Http\Controllers\LocaleController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
+
+Route::post('locale', LocaleController::class)->name('locale.update');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', [CityController::class, 'show'])->name('dashboard');

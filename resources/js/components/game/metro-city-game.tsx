@@ -22,6 +22,7 @@ import type { ShopCategory } from './hud/shop-toolbar';
 import InspectionModal from './hud/inspection-modal';
 import NewCityModal from './hud/new-city-modal';
 import ProfileSettingsModal from './hud/profile-settings-modal';
+import { useTranslation } from '@/hooks/use-translation';
 
 // Backwards-compatible re-exports for existing importers.
 // (Definitions now live in sibling modules.)
@@ -49,6 +50,11 @@ export default function MetroCityGame({
     onResetCity,
     settings,
 }: MetroCityGameProps) {
+    const { t } = useTranslation();
+
+    const buildingName = (type: string): string =>
+        t(`building.${type}.name`, BUILDING_TYPES[type]?.name ?? type);
+
     // Game Economy State
     const [cityName, setCityName] = useState(initialCity.name || 'Metropolis');
     const [money, setMoney] = useState(initialCity.money ?? 2500);
@@ -151,10 +157,14 @@ export default function MetroCityGame({
                     tileKey: string;
                 }) => {
                     toast.success(
-                        `Project Finished: ${data.buildingName} is fully constructed!`,
+                        t('game.project_finished', {
+                            name: data.buildingName,
+                        }),
                         {
                             icon: '🏗️',
-                            description: `Tile [${data.tileKey}] has opened.`,
+                            description: t('game.tile_opened', {
+                                tile: data.tileKey,
+                            }),
                         },
                     );
                     playSound('levelup', soundEnabled);
@@ -409,12 +419,13 @@ export default function MetroCityGame({
 
         // Animation Loop with Crane & Dollar Symbol Animations
         let animationFrameId: number;
-        const clock = new THREE.Clock();
+        const timer = new THREE.Timer();
 
         const animate = () => {
             animationFrameId = requestAnimationFrame(animate);
-            const delta = clock.getDelta();
-            const elapsed = clock.getElapsedTime();
+            timer.update();
+            const delta = timer.getDelta();
+            const elapsed = timer.getElapsed();
 
             // 1. Cloud movement
             cloudsGroup.children.forEach((cloud) => {
@@ -467,6 +478,7 @@ export default function MetroCityGame({
 
         return () => {
             cancelAnimationFrame(animationFrameId);
+            timer.dispose();
             window.removeEventListener('resize', handleResize);
             if (domEl) domEl.removeEventListener('mousemove', handleMouseMove);
             renderer.dispose();
@@ -650,13 +662,17 @@ export default function MetroCityGame({
 
                         playSound('levelup', soundEnabled);
                         toast.success(
-                            `Construction Complete: ${bDef.name} has opened!`,
+                            t('game.construction_complete', {
+                                name: buildingName(bDef.id),
+                            }),
                             {
                                 icon: '🏗️',
                             },
                         );
                         spawnFloatingText(
-                            `+${bDef.name} Open!`,
+                            t('game.building_open', {
+                                name: buildingName(bDef.id),
+                            }),
                             window.innerWidth / 2,
                             window.innerHeight / 2,
                         );
@@ -704,7 +720,7 @@ export default function MetroCityGame({
                 setGridData(updated);
                 setSelectedBuilding(null);
                 playSound('demolish', soundEnabled);
-                spawnFloatingText('-$ Destroyed', e.clientX, e.clientY);
+                spawnFloatingText(t('game.destroyed'), e.clientX, e.clientY);
             }
             return;
         }
@@ -717,14 +733,21 @@ export default function MetroCityGame({
                     if (level < bDef.unlockLevel) {
                         playSound('error', soundEnabled);
                         toast.error(
-                            `🔒 Requires Mayor Level ${bDef.unlockLevel} to construct ${bDef.name}!`,
+                            `🔒 ${t('game.requires_level', {
+                                level: bDef.unlockLevel,
+                                name: buildingName(selectedTool),
+                            })}`,
                         );
                         return;
                     }
 
                     if (money < bDef.cost) {
                         playSound('error', soundEnabled);
-                        toast.error(`Not enough funds to build ${bDef.name}!`);
+                        toast.error(
+                            t('game.not_enough_funds', {
+                                name: buildingName(selectedTool),
+                            }),
+                        );
                         return;
                     }
 
@@ -839,14 +862,19 @@ export default function MetroCityGame({
                     (b) => b.unlockLevel === nextLvl,
                 );
                 if (newlyUnlocked.length > 0) {
-                    const names = newlyUnlocked.map((b) => b.name).join(', ');
+                    const names = newlyUnlocked
+                        .map((b) => buildingName(b.id))
+                        .join(', ');
                     toast.success(
-                        `🎉 Level Up! Mayor Level ${nextLvl}! Unlocked: ${names}!`,
+                        `🎉 ${t('game.level_up_unlocked', {
+                            level: nextLvl,
+                            names,
+                        })}`,
                         { duration: 5000 },
                     );
                 } else {
                     toast.success(
-                        `🎉 Level Up! You reached Mayor Level ${nextLvl}!`,
+                        `🎉 ${t('game.level_up', { level: nextLvl })}`,
                     );
                 }
 
@@ -913,7 +941,7 @@ export default function MetroCityGame({
         setSelectedBuilding(null);
         playSound('demolish', soundEnabled);
         spawnFloatingText(
-            '-$ Demolished',
+            t('game.demolished'),
             window.innerWidth / 2,
             window.innerHeight / 2,
         );
@@ -922,7 +950,10 @@ export default function MetroCityGame({
     const handleLockedBuilding = (item: BuildingDefinition) => {
         playSound('error', soundEnabled);
         toast.error(
-            `🔒 Reach Mayor Level ${item.unlockLevel} to unlock ${item.name}!`,
+            `🔒 ${t('game.locked_building', {
+                level: item.unlockLevel,
+                name: buildingName(item.id),
+            })}`,
         );
     };
 
@@ -1027,11 +1058,6 @@ export default function MetroCityGame({
                     mustVerifyEmail={settings?.mustVerifyEmail ?? false}
                     status={settings?.status}
                     passwordRules={settings?.passwordRules ?? ''}
-                    canManageTwoFactor={settings?.canManageTwoFactor}
-                    canManagePasskeys={settings?.canManagePasskeys}
-                    passkeys={settings?.passkeys}
-                    twoFactorEnabled={settings?.twoFactorEnabled}
-                    requiresConfirmation={settings?.requiresConfirmation}
                     onClose={() => setIsProfileModalOpen(false)}
                 />
             )}

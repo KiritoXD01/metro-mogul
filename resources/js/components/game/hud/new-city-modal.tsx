@@ -1,5 +1,6 @@
 import type React from 'react';
 import { Crown, X } from 'lucide-react';
+import { useTranslation } from '@/hooks/use-translation';
 
 interface NewCityModalProps {
     userName: string;
@@ -16,6 +17,8 @@ export default function NewCityModal({
     onClose,
     onSubmit,
 }: NewCityModalProps) {
+    const { t } = useTranslation();
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
             <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
@@ -23,7 +26,7 @@ export default function NewCityModal({
                     <div className="flex items-center gap-2">
                         <Crown className="h-5 w-5 text-amber-400" />
                         <h3 className="text-lg font-bold text-white">
-                            Found a New City
+                            {t('city.found_title')}
                         </h3>
                     </div>
                     <button
@@ -34,9 +37,7 @@ export default function NewCityModal({
                     </button>
                 </div>
                 <p className="mb-4 text-sm text-slate-300">
-                    Starting a new city will clear the current grid and reset
-                    your treasury to $2,500. Choose a name for your next booming
-                    metropolis:
+                    {t('city.found_desc')}
                 </p>
                 <form onSubmit={onSubmit} className="space-y-4">
                     <div>
@@ -44,14 +45,14 @@ export default function NewCityModal({
                             htmlFor="newCityName"
                             className="mb-1 block text-xs font-bold tracking-wider text-slate-400 uppercase"
                         >
-                            City Name
+                            {t('city.name_label')}
                         </label>
                         <input
                             id="newCityName"
                             type="text"
                             value={value}
                             onChange={(e) => onChange(e.target.value)}
-                            placeholder={`${userName}'s City`}
+                            placeholder={t('city.name_ph', { name: userName })}
                             className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                             autoFocus
                         />
@@ -62,13 +63,13 @@ export default function NewCityModal({
                             onClick={onClose}
                             className="rounded-xl px-4 py-2 text-sm text-slate-300 transition-all hover:bg-slate-800"
                         >
-                            Cancel
+                            {t('city.cancel')}
                         </button>
                         <button
                             type="submit"
                             className="rounded-xl bg-amber-500 px-5 py-2 text-sm font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400"
                         >
-                            Found City
+                            {t('city.found')}
                         </button>
                     </div>
                 </form>

@@ -14,6 +14,8 @@ import {
     ZoomOut,
 } from 'lucide-react';
 import type { SaveStatus } from '../types';
+import LanguageSwitcher from '@/components/language-switcher';
+import { useTranslation } from '@/hooks/use-translation';
 
 interface TopHudProps {
     cityName: string;
@@ -50,6 +52,8 @@ export default function TopHud({
     onZoomOut,
     onResetCamera,
 }: TopHudProps) {
+    const { t } = useTranslation();
+
     return (
         <header className="pointer-events-none absolute top-4 right-4 left-4 z-10 flex flex-wrap items-center justify-between gap-4">
             {/* City Info & Mayor Bar */}
@@ -64,7 +68,7 @@ export default function TopHud({
                                 {cityName}
                             </span>
                             <span className="rounded-full border border-indigo-400/30 bg-indigo-500/30 px-2 py-0.5 text-[10px] font-bold text-indigo-300">
-                                Mayor {userName}
+                                {t('hud.mayor')} {userName}
                             </span>
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-slate-400">
@@ -72,18 +76,17 @@ export default function TopHud({
                             {saveStatus === 'saving' && (
                                 <span className="flex items-center gap-1 text-amber-400">
                                     <RotateCw className="h-3 w-3 animate-spin" />{' '}
-                                    Saving...
+                                    {t('hud.saving')}
                                 </span>
                             )}
                             {saveStatus === 'saved' && (
                                 <span className="flex items-center gap-1 text-emerald-400">
-                                    <CheckCircle2 className="h-3 w-3" /> Saved
+                                    <CheckCircle2 className="h-3 w-3" /> {t('hud.saved')}
                                 </span>
                             )}
                             {saveStatus === 'error' && (
                                 <span className="flex items-center gap-1 text-rose-400">
-                                    <AlertCircle className="h-3 w-3" /> Save
-                                    failed
+                                    <AlertCircle className="h-3 w-3" /> {t('hud.save_failed')}
                                 </span>
                             )}
                         </div>
@@ -100,7 +103,7 @@ export default function TopHud({
                     </div>
                     <div>
                         <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                            Treasury
+                            {t('hud.treasury')}
                         </div>
                         <div className="text-lg font-extrabold text-emerald-400">
                             ${money.toLocaleString()}
@@ -117,7 +120,7 @@ export default function TopHud({
                     </div>
                     <div>
                         <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                            Citizens
+                            {t('hud.citizens')}
                         </div>
                         <div className="text-lg font-extrabold text-blue-300">
                             {population.toLocaleString()}
@@ -134,7 +137,7 @@ export default function TopHud({
                     </div>
                     <div>
                         <div className="flex items-center justify-between gap-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                            <span>Lvl {level}</span>
+                            <span>{t('blueprints.level')} {level}</span>
                             <span>
                                 {xp}/{level * 100} XP
                             </span>
@@ -156,28 +159,28 @@ export default function TopHud({
                 <button
                     onClick={onSave}
                     className="flex items-center gap-1 rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
-                    title="Save City"
+                    title={t('hud.save_city')}
                 >
                     <Save className="h-4 w-4 text-indigo-400" />
                     <span className="hidden text-xs font-bold sm:inline">
-                        Save
+                        {t('hud.save')}
                     </span>
                 </button>
                 <button
                     onClick={onNewCity}
                     className="flex items-center gap-1 rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-amber-400"
-                    title="Start New City"
+                    title={t('hud.start_new_city')}
                 >
                     <RotateCw className="h-4 w-4 text-amber-400" />
                     <span className="hidden text-xs font-bold sm:inline">
-                        New City
+                        {t('hud.new_city')}
                     </span>
                 </button>
                 <div className="mx-1 h-6 w-px bg-slate-700/60" />
                 <button
                     onClick={onToggleSound}
                     className="rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
-                    title="Toggle Audio"
+                    title={t('hud.toggle_audio')}
                 >
                     {soundEnabled ? (
                         <Volume2 className="h-4 w-4 text-emerald-400" />
@@ -188,30 +191,31 @@ export default function TopHud({
                 <button
                     onClick={onZoomIn}
                     className="rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
-                    title="Zoom In"
+                    title={t('hud.zoom_in')}
                 >
                     <ZoomIn className="h-4 w-4" />
                 </button>
                 <button
                     onClick={onZoomOut}
                     className="rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
-                    title="Zoom Out"
+                    title={t('hud.zoom_out')}
                 >
                     <ZoomOut className="h-4 w-4" />
                 </button>
                 <button
                     onClick={onResetCamera}
                     className="rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
-                    title="Reset Camera View"
+                    title={t('hud.reset_camera')}
                 >
                     <RotateCcw className="h-4 w-4" />
                 </button>
+                <LanguageSwitcher className="border-slate-700/60" />
                 <button
                     onClick={onProfileClick}
                     className="ml-1 rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
-                    title="Mayor Profile & Settings"
+                    title={t('hud.profile_settings')}
                 >
-                    <span className="text-xs font-bold">Profile</span>
+                    <span className="text-xs font-bold">{t('hud.profile')}</span>
                 </button>
             </div>
         </header>

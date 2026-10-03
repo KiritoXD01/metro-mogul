@@ -9,6 +9,7 @@ import {
     X,
 } from 'lucide-react';
 import { BUILDING_TYPES, formatDuration } from '../buildings';
+import { useTranslation } from '@/hooks/use-translation';
 import type { BuildingDefinition } from '../types';
 
 export type ShopCategory = BuildingDefinition['category'];
@@ -23,11 +24,11 @@ interface ShopToolbarProps {
     onLockedBuilding: (item: BuildingDefinition) => void;
 }
 
-const TABS: { id: ShopCategory; label: string; icon: typeof Home }[] = [
-    { id: 'residential', label: 'Housing', icon: Home },
-    { id: 'commercial', label: 'Businesses', icon: Store },
-    { id: 'decor', label: 'Decor', icon: Trees },
-    { id: 'road', label: 'Roads', icon: Route },
+const TABS: { id: ShopCategory; labelKey: string; icon: typeof Home }[] = [
+    { id: 'residential', labelKey: 'shop.housing', icon: Home },
+    { id: 'commercial', labelKey: 'shop.businesses', icon: Store },
+    { id: 'decor', labelKey: 'shop.decor', icon: Trees },
+    { id: 'road', labelKey: 'shop.roads', icon: Route },
 ];
 
 export default function ShopToolbar({
@@ -39,6 +40,11 @@ export default function ShopToolbar({
     onToolChange,
     onLockedBuilding,
 }: ShopToolbarProps) {
+    const { t } = useTranslation();
+
+    const buildingName = (id: string, fallback: string): string =>
+        t(`building.${id}.name`, fallback);
+
     return (
         <footer className="pointer-events-none absolute right-4 bottom-4 left-4 z-10 flex flex-col items-center gap-3">
             {/* Tool Status Badge */}
@@ -46,8 +52,8 @@ export default function ShopToolbar({
                 <div className="pointer-events-auto flex animate-pulse items-center gap-3 rounded-xl border border-amber-500/60 bg-slate-900/95 px-4 py-2 shadow-xl backdrop-blur-md">
                     <span className="text-xs font-semibold tracking-wider text-amber-400 uppercase">
                         {selectedTool === 'bulldozer'
-                            ? 'Demolish Mode Active'
-                            : `Constructing: ${BUILDING_TYPES[selectedTool]?.name} (${formatDuration(BUILDING_TYPES[selectedTool]?.buildTime ?? 0)} wait)`}
+                            ? t('shop.demolish_active')
+                            : `${t('shop.constructing')}: ${buildingName(selectedTool, BUILDING_TYPES[selectedTool]?.name ?? selectedTool)} (${formatDuration(BUILDING_TYPES[selectedTool]?.buildTime ?? 0, t('shop.instant'))} ${t('shop.wait')})`}
                     </span>
                     <button
                         onClick={() => onToolChange(null)}
@@ -81,7 +87,7 @@ export default function ShopToolbar({
                                     }`}
                                 >
                                     <Icon className="h-4 w-4" />
-                                    <span>{tab.label}</span>
+                                    <span>{t(tab.labelKey)}</span>
                                 </button>
                             );
                         })}
@@ -103,7 +109,7 @@ export default function ShopToolbar({
                         }`}
                     >
                         <Trash2 className="h-4 w-4" />
-                        <span>Demolish</span>
+                        <span>{t('shop.demolish')}</span>
                     </button>
                 </div>
 
@@ -142,7 +148,7 @@ export default function ShopToolbar({
                                 >
                                     <div className="mb-1.5 flex w-full items-center justify-between">
                                         <span className="truncate text-xs font-bold text-slate-200">
-                                            {item.name}
+                                            {buildingName(item.id, item.name)}
                                         </span>
                                         <div
                                             className={`rounded-lg p-1 ${
@@ -163,7 +169,7 @@ export default function ShopToolbar({
                                         {isLocked ? (
                                             <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-black text-amber-300">
                                                 <Lock className="h-2.5 w-2.5" />
-                                                Lvl {item.unlockLevel}
+                                                {t('blueprints.level')} {item.unlockLevel}
                                             </span>
                                         ) : (
                                             <span
@@ -178,7 +184,7 @@ export default function ShopToolbar({
                                         )}
                                         <span className="flex items-center gap-0.5 text-[10px] font-medium text-amber-300/90">
                                             <Clock className="h-2.5 w-2.5" />
-                                            {formatDuration(item.buildTime)}
+                                            {formatDuration(item.buildTime, t('shop.instant'))}
                                         </span>
                                     </div>
                                 </button>

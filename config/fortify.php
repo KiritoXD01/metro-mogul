@@ -162,16 +162,16 @@ return [
 
     'features' => [
         Features::registration(),
-        Features::resetPasswords(),
+        // Temporarily disabled: Features::resetPasswords(),
         Features::emailVerification(),
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-            // 'window' => 0
-        ]),
-        Features::passkeys([
-            'confirmPassword' => true,
-        ]),
+        // Temporarily disabled: Features::twoFactorAuthentication([
+        //     'confirm' => true,
+        //     'confirmPassword' => true,
+        //     // 'window' => 0
+        // ]),
+        // Temporarily disabled: Features::passkeys([
+        //     'confirmPassword' => true,
+        // ]),
     ],
 
 ];
