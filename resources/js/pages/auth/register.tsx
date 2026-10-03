@@ -6,16 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
-export default function Register() {
+type Props = {
+    passwordRules: string;
+};
+
+export default function Register({ passwordRules }: Props) {
     return (
-        <AuthLayout
-            title="Create an account"
-            description="Enter your details below to create your account"
-        >
+        <>
             <Head title="Register" />
             <Form
                 {...store.form()}
@@ -67,6 +67,7 @@ export default function Register() {
                                     autoComplete="new-password"
                                     name="password"
                                     placeholder="Password"
+                                    passwordrules={passwordRules}
                                 />
                                 <InputError message={errors.password} />
                             </div>
@@ -82,6 +83,7 @@ export default function Register() {
                                     autoComplete="new-password"
                                     name="password_confirmation"
                                     placeholder="Confirm password"
+                                    passwordrules={passwordRules}
                                 />
                                 <InputError
                                     message={errors.password_confirmation}
@@ -108,6 +110,11 @@ export default function Register() {
                     </>
                 )}
             </Form>
-        </AuthLayout>
+        </>
     );
 }
+
+Register.layout = {
+    title: 'Create an account',
+    description: 'Enter your details below to create your account',
+};
