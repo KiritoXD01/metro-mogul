@@ -67,6 +67,9 @@ return [
         'ably' => [
             'driver' => 'ably',
             'key' => env('ABLY_KEY'),
+            'token_expiry' => env('ABLY_TOKEN_EXPIRY', 28800),
+            'disable_public_channels' => env('ABLY_DISABLE_PUBLIC_CHANNELS', false),
+            'sync_server_time' => env('ABLY_SYNC_SERVER_TIME', false),
         ],
 
         'mercure' => [
