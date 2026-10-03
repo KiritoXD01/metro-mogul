@@ -1,36 +1,64 @@
-import { Head } from '@inertiajs/react';
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
-import { dashboard } from '@/routes';
+import { Head, usePage, router } from '@inertiajs/react';
+import MetroCityGame, {
+    type CityModelData,
+    type GridData,
+} from '@/components/game/metro-city-game';
+import type { Auth } from '@/types';
 
-export default function Dashboard() {
+interface DashboardProps {
+    city: CityModelData;
+}
+
+export default function Dashboard({ city }: DashboardProps) {
+    const { auth } = usePage<{ auth: Auth }>().props;
+    const userName = auth?.user?.name || 'Mayor';
+
+    const handleSave = (data: {
+        name: string;
+        money: number;
+        population: number;
+        xp: number;
+        level: number;
+        grid_data: GridData;
+    }) => {
+        return new Promise<void>((resolve, reject) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            router.put('/city', data as any, {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: () => resolve(),
+                onError: () => reject(new Error('Save failed')),
+            });
+        });
+    };
+
+    const handleResetCity = (newCityName: string) => {
+        return new Promise<void>((resolve, reject) => {
+            router.post(
+                '/city/reset',
+                { name: newCityName },
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                    onSuccess: () => resolve(),
+                    onError: () => reject(new Error('Reset failed')),
+                },
+            );
+        });
+    };
+
     return (
         <>
-            <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                </div>
-                <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                </div>
-            </div>
+            <Head title={`${city.name} - Metro Mogul 3D`} />
+            <main className="h-screen w-screen overflow-hidden bg-slate-950">
+                <MetroCityGame
+                    initialCity={city}
+                    userName={userName}
+                    userId={auth?.user?.id}
+                    onSave={handleSave}
+                    onResetCity={handleResetCity}
+                />
+            </main>
         </>
     );
 }
-
-Dashboard.layout = {
-    breadcrumbs: [
-        {
-            title: 'Dashboard',
-            href: dashboard(),
-        },
-    ],
-};
