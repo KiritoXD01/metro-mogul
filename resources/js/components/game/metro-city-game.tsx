@@ -21,6 +21,7 @@ import ShopToolbar from './hud/shop-toolbar';
 import type { ShopCategory } from './hud/shop-toolbar';
 import InspectionModal from './hud/inspection-modal';
 import NewCityModal from './hud/new-city-modal';
+import ProfileSettingsModal from './hud/profile-settings-modal';
 
 // Backwards-compatible re-exports for existing importers.
 // (Definitions now live in sibling modules.)
@@ -32,6 +33,7 @@ export type {
     CityModelData,
     CitySaveData,
     FloatingText,
+    GameSettingsProps,
     GridData,
     GridItem,
     MetroCityGameProps,
@@ -45,6 +47,7 @@ export default function MetroCityGame({
     userId,
     onSave,
     onResetCity,
+    settings,
 }: MetroCityGameProps) {
     // Game Economy State
     const [cityName, setCityName] = useState(initialCity.name || 'Metropolis');
@@ -109,6 +112,7 @@ export default function MetroCityGame({
 
     // Modals & Save states
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [newCityNameInput, setNewCityNameInput] = useState('');
     const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
     const lastSavedRef = useRef<string>('');
@@ -981,6 +985,7 @@ export default function MetroCityGame({
                     void triggerSave();
                 }}
                 onNewCity={() => setIsResetModalOpen(true)}
+                onProfileClick={() => setIsProfileModalOpen(true)}
                 onToggleSound={() => setSoundEnabled(!soundEnabled)}
                 onZoomIn={() => adjustZoom(0.2)}
                 onZoomOut={() => adjustZoom(-0.2)}
@@ -1014,6 +1019,20 @@ export default function MetroCityGame({
                     onChange={setNewCityNameInput}
                     onClose={() => setIsResetModalOpen(false)}
                     onSubmit={handleStartNewCitySubmit}
+                />
+            )}
+
+            {isProfileModalOpen && (
+                <ProfileSettingsModal
+                    mustVerifyEmail={settings?.mustVerifyEmail ?? false}
+                    status={settings?.status}
+                    passwordRules={settings?.passwordRules ?? ''}
+                    canManageTwoFactor={settings?.canManageTwoFactor}
+                    canManagePasskeys={settings?.canManagePasskeys}
+                    passkeys={settings?.passkeys}
+                    twoFactorEnabled={settings?.twoFactorEnabled}
+                    requiresConfirmation={settings?.requiresConfirmation}
+                    onClose={() => setIsProfileModalOpen(false)}
                 />
             )}
         </div>

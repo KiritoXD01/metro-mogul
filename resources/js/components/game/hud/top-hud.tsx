@@ -1,5 +1,3 @@
-import { Link } from '@inertiajs/react';
-import { edit as profileEdit } from '@/routes/profile';
 import {
     AlertCircle,
     CheckCircle2,
@@ -28,6 +26,7 @@ interface TopHudProps {
     soundEnabled: boolean;
     onSave: () => void;
     onNewCity: () => void;
+    onProfileClick: () => void;
     onToggleSound: () => void;
     onZoomIn: () => void;
     onZoomOut: () => void;
@@ -45,6 +44,7 @@ export default function TopHud({
     soundEnabled,
     onSave,
     onNewCity,
+    onProfileClick,
     onToggleSound,
     onZoomIn,
     onZoomOut,
@@ -206,13 +206,13 @@ export default function TopHud({
                 >
                     <RotateCcw className="h-4 w-4" />
                 </button>
-                <Link
-                    href={profileEdit()}
+                <button
+                    onClick={onProfileClick}
                     className="ml-1 rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
                     title="Mayor Profile & Settings"
                 >
                     <span className="text-xs font-bold">Profile</span>
-                </Link>
+                </button>
             </div>
         </header>
     );

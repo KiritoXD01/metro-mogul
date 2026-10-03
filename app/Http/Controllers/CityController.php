@@ -6,11 +6,14 @@ use App\Jobs\NotifyBuildingCompletedJob;
 use App\Models\City;
 use App\Models\CityTile;
 use App\Models\User;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
+use Laravel\Fortify\Features;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class CityController extends Controller
@@ -89,6 +92,50 @@ class CityController extends Controller
     }
 
     /**
+     * Shared settings props for the in-game profile modal.
+     * Mirrors ProfileController::edit and SecurityController::edit so the
+     * dashboard can render every settings tab without leaving the game.
+     *
+     * @return array<string, mixed>
+     */
+    private function settingsProps(Request $request): array
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $props = [
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
+            'status' => $request->session()->get('status'),
+            'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
+            'canManagePasskeys' => Features::canManagePasskeys(),
+            'passkeys' => Features::canManagePasskeys()
+                ? $user
+                    ->passkeys()
+                    ->select(['id', 'name', 'credential', 'created_at', 'last_used_at'])
+                    ->latest()
+                    ->get()
+                    ->map(fn ($passkey) => [
+                        'id' => $passkey->id,
+                        'name' => $passkey->name,
+                        'authenticator' => $passkey->authenticator,
+                        'created_at_diff' => $passkey->created_at->diffForHumans(),
+                        'last_used_at_diff' => $passkey->last_used_at?->diffForHumans(),
+                    ])
+                    ->values()
+                    ->all()
+                : [],
+            'passwordRules' => Password::defaults()->toPasswordRulesString(),
+        ];
+
+        if (Features::canManageTwoFactorAuthentication()) {
+            $props['twoFactorEnabled'] = $user->hasEnabledTwoFactorAuthentication();
+            $props['requiresConfirmation'] = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
+        }
+
+        return $props;
+    }
+
+    /**
      * Display the city builder dashboard.
      */
     public function show(Request $request): Response
@@ -97,9 +144,9 @@ class CityController extends Controller
         $user = $request->user();
         $city = $this->cityFor($user);
 
-        return Inertia::render('dashboard', [
+        return Inertia::render('dashboard', array_merge([
             'city' => $this->cityPayload($city),
-        ]);
+        ], $this->settingsProps($request)));
     }
 
     /**
@@ -109,9 +156,9 @@ class CityController extends Controller
     {
         $this->authorizeCity($request, $city);
 
-        return Inertia::render('dashboard', [
+        return Inertia::render('dashboard', array_merge([
             'city' => $this->cityPayload($city),
-        ]);
+        ], $this->settingsProps($request)));
     }
 
     /**

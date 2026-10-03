@@ -1,15 +1,16 @@
 import { Head, usePage, router } from '@inertiajs/react';
 import MetroCityGame, {
     type CityModelData,
+    type GameSettingsProps,
     type GridData,
 } from '@/components/game/metro-city-game';
 import type { Auth } from '@/types';
 
-interface DashboardProps {
+type DashboardProps = {
     city: CityModelData;
-}
+} & GameSettingsProps;
 
-export default function Dashboard({ city }: DashboardProps) {
+export default function Dashboard({ city, ...settings }: DashboardProps) {
     const { auth } = usePage<{ auth: Auth }>().props;
     const userName = auth?.user?.name || 'Mayor';
 
@@ -57,6 +58,7 @@ export default function Dashboard({ city }: DashboardProps) {
                     userId={auth?.user?.id}
                     onSave={handleSave}
                     onResetCity={handleResetCity}
+                    settings={settings}
                 />
             </main>
         </>

@@ -4,6 +4,13 @@ import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -12,7 +19,7 @@ import { store as loginStore } from '@/routes/login';
 import { store as registerStore } from '@/routes/register';
 import { request as passwordRequest } from '@/routes/password';
 import { edit as profileEdit } from '@/routes/profile';
-import { BUILDING_TYPES } from '@/components/game/metro-city-game';
+import { BUILDING_TYPES } from '@/components/game/buildings';
 import type { Auth } from '@/types';
 import {
     ArrowRight,
@@ -20,12 +27,16 @@ import {
     Coins,
     Crown,
     Gamepad2,
+    Hammer,
     Layers,
     LogOut,
     Play,
     Settings,
     Sparkles,
+    Trophy,
     Volume2,
+    ChevronDown,
+    ChevronUp,
 } from 'lucide-react';
 
 function formatBuildTime(seconds?: number): string {
@@ -36,28 +47,36 @@ function formatBuildTime(seconds?: number): string {
     return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
 }
 
+// 4 signature buildings featured by default
+const SIGNATURE_BUILDING_IDS = ['small_house', 'coffee_shop', 'villa', 'tech_office'];
+
 export default function Welcome() {
     const { auth } = usePage<{ auth: Auth }>().props;
     const user = auth?.user;
 
-    const [authTab, setAuthTab] = useState<'login' | 'register'>('register');
-    const [catalogFilter, setCatalogFilter] = useState<
-        'all' | 'residential' | 'commercial' | 'decor' | 'road'
-    >('all');
+    const [authModalOpen, setAuthModalOpen] = useState(false);
+    const [authTab, setAuthTab] = useState<'register' | 'login'>('register');
+    const [showAllBlueprints, setShowAllBlueprints] = useState(false);
 
-    const filteredBuildings = Object.values(BUILDING_TYPES).filter(
-        (b) => catalogFilter === 'all' || b.category === catalogFilter,
-    );
+    const openAuthModal = (tab: 'register' | 'login') => {
+        setAuthTab(tab);
+        setAuthModalOpen(true);
+    };
+
+    const allBuildings = Object.values(BUILDING_TYPES);
+    const displayedBuildings = showAllBlueprints
+        ? allBuildings
+        : allBuildings.filter((b) => SIGNATURE_BUILDING_IDS.includes(b.id));
 
     return (
         <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100 selection:bg-amber-400 selection:text-slate-950">
             <Head title="Metro Mogul 3D - The Isometric City Builder" />
 
-            {/* Top Ambient Glow */}
-            <div className="pointer-events-none fixed top-0 left-1/2 -z-10 h-96 w-full max-w-7xl -translate-x-1/2 bg-gradient-to-b from-indigo-600/15 via-amber-500/10 to-transparent blur-3xl" />
+            {/* Ambient Background Lights */}
+            <div className="pointer-events-none fixed top-0 left-1/2 -z-10 h-[500px] w-full max-w-7xl -translate-x-1/2 bg-gradient-to-b from-indigo-600/15 via-amber-500/10 to-transparent blur-3xl" />
 
             {/* NAVIGATION BAR */}
-            <nav className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-xl">
+            <nav className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
                 <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 font-black text-slate-950 shadow-lg shadow-amber-500/20">
@@ -71,23 +90,23 @@ export default function Welcome() {
                                 </span>
                             </div>
                             <div className="text-[10px] font-medium tracking-tight text-slate-400">
-                                The Isometric Metropolis Builder
+                                Isometric City Simulation
                             </div>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4">
                         <a
-                            href="#showcase"
+                            href="#gameplay"
                             className="hidden text-xs font-semibold text-slate-400 transition-colors hover:text-white md:inline-block"
                         >
-                            Building Catalog
+                            Gameplay
                         </a>
                         <a
-                            href="#mechanics"
+                            href="#blueprints"
                             className="hidden text-xs font-semibold text-slate-400 transition-colors hover:text-white md:inline-block"
                         >
-                            City Mechanics
+                            Blueprints
                         </a>
 
                         {user ? (
@@ -98,6 +117,13 @@ export default function Welcome() {
                                 >
                                     <Play className="h-3.5 w-3.5 fill-current" />
                                     <span>Resume City</span>
+                                </Link>
+                                <Link
+                                    href={profileEdit()}
+                                    className="rounded-xl border border-slate-800 p-2 text-slate-400 transition-all hover:bg-slate-900 hover:text-white"
+                                    title="Settings"
+                                >
+                                    <Settings className="h-4 w-4" />
                                 </Link>
                                 <Link
                                     href={logout()}
@@ -112,28 +138,14 @@ export default function Welcome() {
                         ) : (
                             <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() => {
-                                        setAuthTab('login');
-                                        document
-                                            .getElementById('mayor-terminal')
-                                            ?.scrollIntoView({
-                                                behavior: 'smooth',
-                                            });
-                                    }}
-                                    className="rounded-xl px-3 py-2 text-xs font-bold text-slate-300 transition-all hover:bg-slate-900 hover:text-white"
+                                    onClick={() => openAuthModal('login')}
+                                    className="rounded-xl px-3.5 py-2 text-xs font-bold text-slate-300 transition-all hover:bg-slate-900 hover:text-white"
                                 >
-                                    Log In
+                                    Mayor Log In
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        setAuthTab('register');
-                                        document
-                                            .getElementById('mayor-terminal')
-                                            ?.scrollIntoView({
-                                                behavior: 'smooth',
-                                            });
-                                    }}
-                                    className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-extrabold text-white shadow-md shadow-indigo-600/30 transition-all hover:bg-indigo-500"
+                                    onClick={() => openAuthModal('register')}
+                                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 px-4 py-2 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-300"
                                 >
                                     <span>Start City</span>
                                     <ArrowRight className="h-3.5 w-3.5" />
@@ -145,426 +157,142 @@ export default function Welcome() {
             </nav>
 
             {/* HERO SECTION */}
-            <section className="relative mx-auto flex max-w-7xl flex-1 flex-col justify-center px-4 pt-12 pb-16 sm:px-6 lg:px-8">
-                <div className="grid items-center gap-12 lg:grid-cols-12">
-                    {/* Left Column: Game Premise & Features */}
-                    <div className="space-y-6 lg:col-span-7">
-                        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-slate-900 px-3 py-1.5 text-xs font-bold text-amber-300 shadow-inner">
-                            <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                            <span>Full 3D WebGL Isometric Simulation</span>
-                        </div>
+            <section className="relative mx-auto max-w-7xl px-4 pt-14 pb-12 text-center sm:px-6 lg:px-8">
+                {/* Game Pill Badge */}
+                <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-slate-900/90 px-3.5 py-1.5 text-xs font-bold text-amber-300 shadow-inner">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                    <span>3D Isometric City Builder • Browser WebGL</span>
+                </div>
 
-                        <h1 className="text-4xl leading-[1.1] font-black tracking-tight sm:text-5xl lg:text-6xl">
-                            Architect Your <br />
-                            <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-indigo-400 bg-clip-text text-transparent">
-                                Thriving Empire
-                            </span>
-                        </h1>
+                {/* Main Headline */}
+                <h1 className="mx-auto mt-6 max-w-4xl text-4xl leading-[1.1] font-black tracking-tight sm:text-5xl lg:text-6xl">
+                    Build, Harvest & Expand <br />
+                    <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-indigo-400 bg-clip-text text-transparent">
+                        Your Living 3D Metropolis
+                    </span>
+                </h1>
 
-                        <p className="max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
-                            Found your city, zone residential cottages and
-                            towering highrises, establish lucrative coffee cafes
-                            and tech hubs, lay asphalt grids, and collect cycles
-                            of rent in an interactive 3D procedural world.
-                        </p>
+                {/* Game Subtitle */}
+                <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
+                    Lay asphalt networks, zone cozy cottages and towering tech offices,
+                    watch construction cranes erect buildings in real-time, and harvest
+                    floating gold coins directly in your browser.
+                </p>
 
-                        {/* Feature Highlights Grid */}
-                        <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-4">
-                            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/70 p-3 backdrop-blur-sm">
-                                <div className="mb-1 text-indigo-400">
-                                    <Gamepad2 className="h-5 w-5" />
-                                </div>
-                                <div className="text-xs font-bold text-white">
-                                    Three.js 3D
-                                </div>
-                                <div className="text-[11px] text-slate-400">
-                                    Isometric viewport
-                                </div>
-                            </div>
+                {/* Action CTAs */}
+                <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                    {user ? (
+                        <Link
+                            href={dashboard()}
+                            className="flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 px-7 py-3.5 text-sm font-black tracking-wide text-slate-950 shadow-xl shadow-amber-500/30 transition-all hover:from-amber-400 hover:to-yellow-300"
+                        >
+                            <Play className="h-4 w-4 fill-current" />
+                            <span>ENTER METROPOLIS</span>
+                        </Link>
+                    ) : (
+                        <>
+                            <button
+                                onClick={() => openAuthModal('register')}
+                                className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 px-7 py-3.5 text-sm font-black tracking-wide text-slate-950 shadow-xl shadow-amber-500/30 transition-all hover:from-amber-400 hover:to-yellow-300"
+                            >
+                                <Play className="h-4 w-4 fill-current" />
+                                <span>START YOUR CITY — FREE</span>
+                            </button>
+                            <button
+                                onClick={() => openAuthModal('login')}
+                                className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/80 px-6 py-3.5 text-sm font-bold text-slate-200 backdrop-blur-sm transition-all hover:bg-slate-800 hover:text-white"
+                            >
+                                <span>Mayor Log In</span>
+                            </button>
+                        </>
+                    )}
+                    <a
+                        href="#blueprints"
+                        className="flex items-center gap-1.5 rounded-2xl px-5 py-3.5 text-sm font-semibold text-slate-400 transition-colors hover:text-white"
+                    >
+                        <span>Explore Blueprints</span>
+                        <ArrowRight className="h-4 w-4" />
+                    </a>
+                </div>
 
-                            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/70 p-3 backdrop-blur-sm">
-                                <div className="mb-1 text-emerald-400">
-                                    <Coins className="h-5 w-5" />
-                                </div>
-                                <div className="text-xs font-bold text-white">
-                                    Live Economy
-                                </div>
-                                <div className="text-[11px] text-slate-400">
-                                    Rent & cycles
-                                </div>
-                            </div>
-
-                            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/70 p-3 backdrop-blur-sm">
-                                <div className="mb-1 text-amber-400">
-                                    <Volume2 className="h-5 w-5" />
-                                </div>
-                                <div className="text-xs font-bold text-white">
-                                    Web Audio
-                                </div>
-                                <div className="text-[11px] text-slate-400">
-                                    Custom synth FX
-                                </div>
-                            </div>
-
-                            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/70 p-3 backdrop-blur-sm">
-                                <div className="mb-1 text-purple-400">
-                                    <Layers className="h-5 w-5" />
-                                </div>
-                                <div className="text-xs font-bold text-white">
-                                    Persistent DB
-                                </div>
-                                <div className="text-[11px] text-slate-400">
-                                    Cloud auto-save
-                                </div>
-                            </div>
-                        </div>
+                {/* Quick Spec Highlights */}
+                <div className="mx-auto mt-10 flex max-w-3xl flex-wrap items-center justify-center gap-6 text-xs text-slate-400">
+                    <div className="flex items-center gap-2">
+                        <Gamepad2 className="h-4 w-4 text-indigo-400" />
+                        <span>Interactive Three.js Isometric Viewport</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4 text-emerald-400" />
+                        <span>Real-time Rent Harvest Cycles</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Volume2 className="h-4 w-4 text-amber-400" />
+                        <span>Custom Web Audio FX</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Layers className="h-4 w-4 text-purple-400" />
+                        <span>Cloud Auto-Save</span>
+                    </div>
+                </div>
 
-                    {/* Right Column: Mayor Terminal (Auth Card / Resume Card) */}
-                    <div id="mayor-terminal" className="lg:col-span-5">
-                        <div className="relative overflow-hidden rounded-3xl border border-slate-800/90 bg-slate-900/90 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
-                            <div className="pointer-events-none absolute top-0 right-0 h-32 w-32 rounded-full bg-amber-500/10 blur-2xl" />
-                            <div className="pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full bg-indigo-500/10 blur-2xl" />
+                {/* GAMEPLAY SHOWCASE CENTERPIECE */}
+                <div className="mx-auto mt-12 max-w-5xl">
+                    <div className="overflow-hidden rounded-3xl border border-slate-800/90 bg-slate-900/90 shadow-2xl ring-1 ring-amber-500/20 backdrop-blur-xl">
+                        {/* Simulation Viewport Header Bar */}
+                        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/70 px-4 py-3 sm:px-6">
+                            <div className="flex items-center gap-2">
+                                <div className="h-3 w-3 rounded-full bg-rose-500/80" />
+                                <div className="h-3 w-3 rounded-full bg-amber-500/80" />
+                                <div className="h-3 w-3 rounded-full bg-emerald-500/80" />
+                                <span className="ml-2 hidden font-mono text-xs font-semibold text-slate-400 sm:inline">
+                                    Metro Mogul 3D Engine • Level 4 Metropolis
+                                </span>
+                            </div>
 
-                            {user ? (
-                                /* Authenticated Mayor State */
-                                <div className="space-y-6 text-center">
-                                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 font-black text-slate-950 shadow-xl shadow-amber-500/30">
-                                        <Crown className="h-8 w-8" />
-                                    </div>
+                            <div className="flex items-center gap-3">
+                                <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[11px] font-bold text-emerald-400">
+                                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                                    Active Simulation
+                                </span>
+                                <span className="font-mono text-xs font-extrabold text-amber-400">
+                                    $2,050 Treasury
+                                </span>
+                            </div>
+                        </div>
 
-                                    <div>
-                                        <div className="text-xs font-bold tracking-widest text-amber-400 uppercase">
-                                            Mayor Headquarters
-                                        </div>
-                                        <h2 className="mt-1 text-2xl font-black text-white">
-                                            Welcome back, {user.name}!
-                                        </h2>
-                                        <p className="mt-1 text-xs text-slate-400">
-                                            Your city treasury and citizens
-                                            await your command.
-                                        </p>
-                                    </div>
+                        {/* Gameplay Screen Image */}
+                        <div className="group relative overflow-hidden bg-slate-950">
+                            <img
+                                src="/images/gameplay-demo.png"
+                                alt="Metro Mogul 3D Gameplay Session"
+                                className="h-auto w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.015]"
+                            />
 
-                                    <div className="space-y-2 rounded-2xl border border-slate-800/80 bg-slate-950/60 p-4 text-left">
-                                        <div className="flex items-center justify-between text-xs">
-                                            <span className="text-slate-400">
-                                                Account
-                                            </span>
-                                            <span className="font-semibold text-white">
-                                                {user.email}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-xs">
-                                            <span className="text-slate-400">
-                                                Status
-                                            </span>
-                                            <span className="inline-flex items-center gap-1 font-bold text-emerald-400">
-                                                <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-                                                Mayor Active
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3 pt-2">
-                                        <Link
-                                            href={dashboard()}
-                                            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 px-6 py-3 text-sm font-black tracking-wide text-slate-950 shadow-xl shadow-amber-500/30 transition-all hover:from-amber-400 hover:to-yellow-300"
-                                        >
-                                            <Play className="h-4 w-4 fill-current" />
-                                            <span>ENTER METROPOLIS</span>
-                                        </Link>
-
-                                        <div className="flex gap-2">
-                                            <Link
-                                                href={profileEdit()}
-                                                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-700/60 bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-200 transition-all hover:bg-slate-700"
-                                            >
-                                                <Settings className="h-3.5 w-3.5" />
-                                                <span>Settings</span>
-                                            </Link>
-
-                                            <Link
-                                                href={logout()}
-                                                method="post"
-                                                as="button"
-                                                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-700/60 bg-slate-800 px-4 py-2.5 text-xs font-bold text-rose-300 transition-all hover:bg-rose-500/20 hover:text-rose-200"
-                                            >
-                                                <LogOut className="h-3.5 w-3.5" />
-                                                <span>Log Out</span>
-                                            </Link>
-                                        </div>
-                                    </div>
+                            {/* Floating Visual Annotations */}
+                            <div className="pointer-events-none absolute top-4 left-4 hidden rounded-xl border border-slate-700/80 bg-slate-950/85 px-3 py-1.5 text-left text-xs font-bold text-slate-200 shadow-xl backdrop-blur-md md:block">
+                                <div className="text-[10px] font-semibold text-amber-400 uppercase">
+                                    3D Isometric City
                                 </div>
-                            ) : (
-                                /* Guest Auth: Login & Register Tabs */
-                                <div>
-                                    <div className="mb-6 flex rounded-2xl border border-slate-800 bg-slate-950/80 p-1">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setAuthTab('register')
-                                            }
-                                            className={`flex-1 rounded-xl py-2 text-xs font-extrabold transition-all ${
-                                                authTab === 'register'
-                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                                                    : 'text-slate-400 hover:text-white'
-                                            }`}
-                                        >
-                                            Found New City
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setAuthTab('login')}
-                                            className={`flex-1 rounded-xl py-2 text-xs font-extrabold transition-all ${
-                                                authTab === 'login'
-                                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                                                    : 'text-slate-400 hover:text-white'
-                                            }`}
-                                        >
-                                            Mayor Log In
-                                        </button>
-                                    </div>
+                                <div className="text-white">Procedural Buildings & Scaffolding</div>
+                            </div>
 
-                                    {authTab === 'register' ? (
-                                        /* CREATE PROFILE & START NEW CITY */
-                                        <div>
-                                            <div className="mb-4">
-                                                <h2 className="text-xl font-bold text-white">
-                                                    Create Mayor Profile
-                                                </h2>
-                                                <p className="text-xs text-slate-400">
-                                                    Found your city with $2,500
-                                                    initial treasury capital.
-                                                </p>
-                                            </div>
+                            <div className="pointer-events-none absolute bottom-16 right-4 hidden rounded-xl border border-emerald-500/30 bg-slate-950/85 px-3 py-1.5 text-left text-xs font-bold text-slate-200 shadow-xl backdrop-blur-md md:block">
+                                <div className="text-[10px] font-semibold text-emerald-400 uppercase">
+                                    Harvest Ready
+                                </div>
+                                <div className="text-white">Floating 3D Coins Ready to Collect</div>
+                            </div>
 
-                                            <Form
-                                                {...registerStore.form()}
-                                                resetOnSuccess={[
-                                                    'password',
-                                                    'password_confirmation',
-                                                ]}
-                                                disableWhileProcessing
-                                                className="space-y-4"
-                                            >
-                                                {({ processing, errors }) => (
-                                                    <>
-                                                        <div className="space-y-1.5">
-                                                            <Label
-                                                                htmlFor="reg_name"
-                                                                className="text-xs font-bold text-slate-300"
-                                                            >
-                                                                Mayor Name
-                                                            </Label>
-                                                            <Input
-                                                                id="reg_name"
-                                                                name="name"
-                                                                type="text"
-                                                                required
-                                                                placeholder="Mayor Alexander"
-                                                                className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
-                                                            />
-                                                            <InputError
-                                                                message={
-                                                                    errors.name
-                                                                }
-                                                            />
-                                                        </div>
-
-                                                        <div className="space-y-1.5">
-                                                            <Label
-                                                                htmlFor="reg_email"
-                                                                className="text-xs font-bold text-slate-300"
-                                                            >
-                                                                Email Address
-                                                            </Label>
-                                                            <Input
-                                                                id="reg_email"
-                                                                name="email"
-                                                                type="email"
-                                                                required
-                                                                placeholder="mayor@metropolis.gov"
-                                                                className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
-                                                            />
-                                                            <InputError
-                                                                message={
-                                                                    errors.email
-                                                                }
-                                                            />
-                                                        </div>
-
-                                                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                                            <div className="space-y-1.5">
-                                                                <Label
-                                                                    htmlFor="reg_password"
-                                                                    className="text-xs font-bold text-slate-300"
-                                                                >
-                                                                    Password
-                                                                </Label>
-                                                                <PasswordInput
-                                                                    id="reg_password"
-                                                                    name="password"
-                                                                    required
-                                                                    autoComplete="new-password"
-                                                                    placeholder="••••••••"
-                                                                    className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
-                                                                />
-                                                                <InputError
-                                                                    message={
-                                                                        errors.password
-                                                                    }
-                                                                />
-                                                            </div>
-
-                                                            <div className="space-y-1.5">
-                                                                <Label
-                                                                    htmlFor="reg_password_confirmation"
-                                                                    className="text-xs font-bold text-slate-300"
-                                                                >
-                                                                    Confirm
-                                                                </Label>
-                                                                <PasswordInput
-                                                                    id="reg_password_confirmation"
-                                                                    name="password_confirmation"
-                                                                    required
-                                                                    autoComplete="new-password"
-                                                                    placeholder="••••••••"
-                                                                    className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
-                                                                />
-                                                                <InputError
-                                                                    message={
-                                                                        errors.password_confirmation
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
-
-                                                        <Button
-                                                            type="submit"
-                                                            disabled={
-                                                                processing
-                                                            }
-                                                            className="mt-2 w-full rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 py-3 text-xs font-black tracking-wider text-slate-950 uppercase shadow-xl shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-yellow-300"
-                                                        >
-                                                            {processing ? (
-                                                                <Spinner className="mr-2 h-4 w-4" />
-                                                            ) : (
-                                                                <Play className="mr-2 h-3.5 w-3.5 fill-current" />
-                                                            )}
-                                                            Start New City
-                                                        </Button>
-                                                    </>
-                                                )}
-                                            </Form>
-                                        </div>
-                                    ) : (
-                                        /* LOGIN SCREEN */
-                                        <div>
-                                            <div className="mb-4">
-                                                <h2 className="text-xl font-bold text-white">
-                                                    Access Your City
-                                                </h2>
-                                                <p className="text-xs text-slate-400">
-                                                    Enter your mayor credentials
-                                                    to resume management.
-                                                </p>
-                                            </div>
-
-                                            <Form
-                                                {...loginStore.form()}
-                                                resetOnSuccess={['password']}
-                                                disableWhileProcessing
-                                                className="space-y-4"
-                                            >
-                                                {({ processing, errors }) => (
-                                                    <>
-                                                        <div className="space-y-1.5">
-                                                            <Label
-                                                                htmlFor="login_email"
-                                                                className="text-xs font-bold text-slate-300"
-                                                            >
-                                                                Email Address
-                                                            </Label>
-                                                            <Input
-                                                                id="login_email"
-                                                                name="email"
-                                                                type="email"
-                                                                required
-                                                                autoFocus
-                                                                placeholder="mayor@metropolis.gov"
-                                                                className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
-                                                            />
-                                                            <InputError
-                                                                message={
-                                                                    errors.email
-                                                                }
-                                                            />
-                                                        </div>
-
-                                                        <div className="space-y-1.5">
-                                                            <div className="flex items-center justify-between">
-                                                                <Label
-                                                                    htmlFor="login_password"
-                                                                    className="text-xs font-bold text-slate-300"
-                                                                >
-                                                                    Password
-                                                                </Label>
-                                                                <Link
-                                                                    href={passwordRequest()}
-                                                                    className="text-[11px] text-indigo-400 underline hover:text-indigo-300"
-                                                                >
-                                                                    Forgot?
-                                                                </Link>
-                                                            </div>
-                                                            <PasswordInput
-                                                                id="login_password"
-                                                                name="password"
-                                                                required
-                                                                autoComplete="current-password"
-                                                                placeholder="••••••••"
-                                                                className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
-                                                            />
-                                                            <InputError
-                                                                message={
-                                                                    errors.password
-                                                                }
-                                                            />
-                                                        </div>
-
-                                                        <div className="flex items-center space-x-2">
-                                                            <Checkbox
-                                                                id="remember"
-                                                                name="remember"
-                                                            />
-                                                            <Label
-                                                                htmlFor="remember"
-                                                                className="text-xs text-slate-400"
-                                                            >
-                                                                Remember this
-                                                                mayor terminal
-                                                            </Label>
-                                                        </div>
-
-                                                        <Button
-                                                            type="submit"
-                                                            disabled={
-                                                                processing
-                                                            }
-                                                            className="mt-2 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 py-3 text-xs font-black tracking-wider text-white uppercase shadow-xl shadow-indigo-600/30 transition-all hover:from-indigo-500 hover:to-indigo-400"
-                                                        >
-                                                            {processing ? (
-                                                                <Spinner className="mr-2 h-4 w-4" />
-                                                            ) : (
-                                                                <Play className="mr-2 h-3.5 w-3.5 fill-current" />
-                                                            )}
-                                                            Enter Metropolis
-                                                        </Button>
-                                                    </>
-                                                )}
-                                            </Form>
-                                        </div>
-                                    )}
+                            {/* Center Hover Action for Guests */}
+                            {!user && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-slate-950/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
+                                    <button
+                                        onClick={() => openAuthModal('register')}
+                                        className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 px-6 py-3 text-xs font-black tracking-wider text-slate-950 uppercase shadow-2xl transition-all hover:scale-105"
+                                    >
+                                        <Play className="h-4 w-4 fill-current" />
+                                        <span>Build Your Own City</span>
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -572,61 +300,103 @@ export default function Welcome() {
                 </div>
             </section>
 
-            {/* BUILDING CATALOG SHOWCASE */}
+            {/* GAMEPLAY PILLARS SECTION */}
             <section
-                id="showcase"
+                id="gameplay"
                 className="border-t border-slate-800/60 bg-slate-950/40 py-20"
             >
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-                        <div>
-                            <div className="mb-1 flex items-center gap-1.5 text-xs font-extrabold tracking-widest text-amber-400 uppercase">
-                                <Building2 className="h-4 w-4" />
-                                <span>Structural Blueprint Catalog</span>
+                    <div className="mx-auto mb-14 max-w-2xl text-center">
+                        <div className="mb-1 text-xs font-extrabold tracking-widest text-indigo-400 uppercase">
+                            Core Mechanics
+                        </div>
+                        <h2 className="text-3xl font-black text-white sm:text-4xl">
+                            How the Metropolis Thrives
+                        </h2>
+                        <p className="mt-2 text-sm text-slate-400">
+                            Build, harvest, and expand with an intuitive loop designed for aspiring urban tycoons.
+                        </p>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-3">
+                        {/* Pillar 1 */}
+                        <div className="group rounded-3xl border border-slate-800/90 bg-slate-900/70 p-7 shadow-xl transition-all hover:border-slate-700 hover:bg-slate-900">
+                            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20">
+                                <Hammer className="h-6 w-6" />
                             </div>
-                            <h2 className="text-3xl font-black text-white sm:text-4xl">
-                                9 Interactive 3D Structures
-                            </h2>
-                            <p className="mt-2 max-w-xl text-sm text-slate-400">
-                                Every structure features procedural 3D models
-                                with real-time shadow casting, population
-                                yields, rent cycles, and level XP.
+                            <h3 className="text-lg font-black text-white">
+                                1. Zone & Construct
+                            </h3>
+                            <p className="mt-2.5 text-xs leading-relaxed text-slate-300">
+                                Lay asphalt roads and place residential cottages, luxury villas, and commercial hubs on a 12x12 grid. Watch tower cranes swing and scaffolding rise as construction jobs complete.
                             </p>
                         </div>
 
-                        {/* Filter buttons */}
-                        <div className="flex flex-wrap gap-2">
-                            {[
-                                { id: 'all' as const, label: 'All Structures' },
-                                {
-                                    id: 'residential' as const,
-                                    label: 'Housing',
-                                },
-                                {
-                                    id: 'commercial' as const,
-                                    label: 'Commercial',
-                                },
-                                { id: 'decor' as const, label: 'Decorations' },
-                                { id: 'road' as const, label: 'Roads' },
-                            ].map((f) => (
-                                <button
-                                    key={f.id}
-                                    onClick={() => setCatalogFilter(f.id)}
-                                    className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
-                                        catalogFilter === f.id
-                                            ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
-                                            : 'border border-slate-800 bg-slate-900 text-slate-400 hover:text-white'
-                                    }`}
-                                >
-                                    {f.label}
-                                </button>
-                            ))}
+                        {/* Pillar 2 */}
+                        <div className="group rounded-3xl border border-slate-800/90 bg-slate-900/70 p-7 shadow-xl transition-all hover:border-slate-700 hover:bg-slate-900">
+                            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20">
+                                <Coins className="h-6 w-6" />
+                            </div>
+                            <h3 className="text-lg font-black text-white">
+                                2. Harvest 3D Rent Coins
+                            </h3>
+                            <p className="mt-2.5 text-xs leading-relaxed text-slate-300">
+                                Cafes, highrises, and businesses generate steady revenue cycles. When rent is ready, a spinning 3D dollar token rises above the rooftop—click to harvest coins and Mayor XP!
+                            </p>
                         </div>
+
+                        {/* Pillar 3 */}
+                        <div className="group rounded-3xl border border-slate-800/90 bg-slate-900/70 p-7 shadow-xl transition-all hover:border-slate-700 hover:bg-slate-900">
+                            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400 ring-1 ring-indigo-500/20">
+                                <Trophy className="h-6 w-6" />
+                            </div>
+                            <h3 className="text-lg font-black text-white">
+                                3. Level Up & Cloud Save
+                            </h3>
+                            <p className="mt-2.5 text-xs leading-relaxed text-slate-300">
+                                Level up your mayor tier to unlock prestige landmarks, green parks, and high-tech corporate offices. Your city state, treasury, and grid tiles continuously sync to your account.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* BLUEPRINTS CATALOG SECTION */}
+            <section
+                id="blueprints"
+                className="border-t border-slate-800/60 bg-slate-950 py-20"
+            >
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+                        <div>
+                            <div className="mb-1 flex items-center gap-1.5 text-xs font-extrabold tracking-widest text-amber-400 uppercase">
+                                <Building2 className="h-4 w-4" />
+                                <span>Blueprint Catalog</span>
+                            </div>
+                            <h2 className="text-3xl font-black text-white sm:text-4xl">
+                                Architectural Blueprints
+                            </h2>
+                            <p className="mt-2 max-w-xl text-sm text-slate-400">
+                                Unlock 9 distinct structures as your mayor level grows, each with unique population yields and revenue timers.
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => setShowAllBlueprints(!showAllBlueprints)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-xs font-bold text-slate-300 transition-all hover:border-slate-700 hover:text-white"
+                        >
+                            <span>{showAllBlueprints ? 'Show Signature 4 Only' : 'Show All 9 Blueprints'}</span>
+                            {showAllBlueprints ? (
+                                <ChevronUp className="h-4 w-4" />
+                            ) : (
+                                <ChevronDown className="h-4 w-4" />
+                            )}
+                        </button>
                     </div>
 
                     {/* Cards Grid */}
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {filteredBuildings.map((b) => {
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                        {displayedBuildings.map((b) => {
                             const Icon = b.icon;
                             return (
                                 <div
@@ -634,28 +404,24 @@ export default function Welcome() {
                                     className="group flex flex-col justify-between rounded-2xl border border-slate-800/90 bg-slate-900/80 p-5 shadow-xl transition-all hover:border-slate-700"
                                 >
                                     <div>
-                                        <div className="mb-4 flex items-center justify-between">
+                                        <div className="mb-3 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div
                                                     className="flex h-10 w-10 items-center justify-center rounded-xl font-bold text-white shadow-md"
-                                                    style={{
-                                                        backgroundColor:
-                                                            b.color,
-                                                    }}
+                                                    style={{ backgroundColor: b.color }}
                                                 >
                                                     <Icon className="h-5 w-5" />
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-base font-bold text-white transition-colors group-hover:text-amber-300">
+                                                    <h3 className="text-sm font-bold text-white transition-colors group-hover:text-amber-300">
                                                         {b.name}
                                                     </h3>
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-1.5">
                                                         <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                                                             {b.category}
                                                         </span>
-                                                        <span className="inline-flex items-center rounded-md border border-amber-400/20 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
-                                                            Level{' '}
-                                                            {b.unlockLevel}
+                                                        <span className="inline-flex items-center rounded-md border border-amber-400/20 bg-amber-400/10 px-1.5 py-0.2 text-[9px] font-bold text-amber-300">
+                                                            Lvl {b.unlockLevel}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -665,9 +431,6 @@ export default function Welcome() {
                                                 <div className="text-sm font-extrabold text-emerald-400">
                                                     ${b.cost}
                                                 </div>
-                                                <div className="text-[10px] font-medium text-slate-500">
-                                                    Cost to build
-                                                </div>
                                             </div>
                                         </div>
 
@@ -676,42 +439,30 @@ export default function Welcome() {
                                         </p>
                                     </div>
 
-                                    {/* Metrics footer */}
-                                    <div className="grid grid-cols-4 gap-2 border-t border-slate-800/80 pt-3 text-center">
-                                        <div className="border-slate-850 rounded-xl border bg-slate-950/60 p-2">
-                                            <div className="text-[9px] font-semibold text-slate-400">
-                                                Build Time
+                                    {/* Metrics strip */}
+                                    <div className="grid grid-cols-3 gap-1.5 border-t border-slate-800/80 pt-3 text-center">
+                                        <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-1.5">
+                                            <div className="text-[9px] font-medium text-slate-400">
+                                                Build
                                             </div>
                                             <div className="text-xs font-black text-amber-400">
                                                 {formatBuildTime(b.buildTime)}
                                             </div>
                                         </div>
-                                        <div className="border-slate-850 rounded-xl border bg-slate-950/60 p-2">
-                                            <div className="text-[9px] font-semibold text-slate-400">
+                                        <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-1.5">
+                                            <div className="text-[9px] font-medium text-slate-400">
+                                                Income
+                                            </div>
+                                            <div className="text-xs font-black text-emerald-400">
+                                                {b.income > 0 ? `+$${b.income}` : '$0'}
+                                            </div>
+                                        </div>
+                                        <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-1.5">
+                                            <div className="text-[9px] font-medium text-slate-400">
                                                 Citizens
                                             </div>
                                             <div className="text-xs font-black text-blue-300">
                                                 +{b.population}
-                                            </div>
-                                        </div>
-                                        <div className="border-slate-850 rounded-xl border bg-slate-950/60 p-2">
-                                            <div className="text-[9px] font-semibold text-slate-400">
-                                                Income
-                                            </div>
-                                            <div className="text-xs font-black text-emerald-400">
-                                                {b.income > 0
-                                                    ? `+$${b.income}`
-                                                    : '$0'}
-                                            </div>
-                                        </div>
-                                        <div className="border-slate-850 rounded-xl border bg-slate-950/60 p-2">
-                                            <div className="text-[9px] font-semibold text-slate-400">
-                                                Cycle
-                                            </div>
-                                            <div className="text-xs font-black text-indigo-300">
-                                                {b.timer > 0
-                                                    ? `${b.timer}s`
-                                                    : 'Passive'}
                                             </div>
                                         </div>
                                     </div>
@@ -722,67 +473,36 @@ export default function Welcome() {
                 </div>
             </section>
 
-            {/* GAME MECHANICS SECTION */}
-            <section
-                id="mechanics"
-                className="mx-auto max-w-7xl border-t border-slate-800/60 px-4 py-20 sm:px-6 lg:px-8"
-            >
-                <div className="mx-auto mb-16 max-w-2xl text-center">
-                    <div className="mb-1 text-xs font-extrabold tracking-widest text-indigo-400 uppercase">
-                        Rules of Urban Prosperity
+            {/* CALL TO ACTION BANNER */}
+            <section className="border-t border-slate-800/80 bg-gradient-to-b from-slate-950 to-indigo-950/30 py-16">
+                <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 font-black text-slate-950 shadow-xl shadow-amber-500/25">
+                        <Crown className="h-7 w-7" />
                     </div>
-                    <h2 className="text-3xl font-black text-white sm:text-4xl">
-                        How to Rule Your Metropolis
+                    <h2 className="mt-5 text-3xl font-black text-white sm:text-4xl">
+                        Your Metropolis Awaits Your Vision
                     </h2>
-                    <p className="mt-2 text-sm text-slate-400">
-                        Master the city balance between citizen capacity,
-                        commercial taxation cycles, and town aesthetics.
+                    <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-300">
+                        Join other mayors in founding bustling 3D cities. Start with a $2,500 initial treasury and build your skyline from the ground up.
                     </p>
-                </div>
-
-                <div className="grid gap-8 md:grid-cols-3">
-                    <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/20 text-lg font-black text-indigo-400">
-                            1
-                        </div>
-                        <h3 className="text-lg font-bold text-white">
-                            Active Construction Sites
-                        </h3>
-                        <p className="text-xs leading-relaxed text-slate-300">
-                            Founding structures takes time and engineering.
-                            Watch tower cranes swing and scaffolds rise as
-                            timers tick down (e.g., 1m for Cozy Cottages, 5m for
-                            Luxury Villas) backed by Laravel jobs.
-                        </p>
-                    </div>
-
-                    <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20 text-lg font-black text-emerald-400">
-                            2
-                        </div>
-                        <h3 className="text-lg font-bold text-white">
-                            Recollect Revenue with 3D Dollars
-                        </h3>
-                        <p className="text-xs leading-relaxed text-slate-300">
-                            Commercial stores and cafes produce steady revenue
-                            cycles. When funds are ready, a spinning, floating
-                            3D dollar token appears over the building—click to
-                            harvest coins and XP!
-                        </p>
-                    </div>
-
-                    <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/20 text-lg font-black text-amber-400">
-                            3
-                        </div>
-                        <h3 className="text-lg font-bold text-white">
-                            Redevelop & Expand
-                        </h3>
-                        <p className="text-xs leading-relaxed text-slate-300">
-                            Demolish outdated homes with the bulldozer tool to
-                            construct luxury villas and high-tech innovation
-                            hubs as your city prestige rises.
-                        </p>
+                    <div className="mt-8 flex justify-center">
+                        {user ? (
+                            <Link
+                                href={dashboard()}
+                                className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 px-8 py-3.5 text-sm font-black tracking-wide text-slate-950 shadow-xl shadow-amber-500/30 transition-all hover:from-amber-400 hover:to-yellow-300"
+                            >
+                                <Play className="h-4 w-4 fill-current" />
+                                <span>RETURN TO YOUR CITY</span>
+                            </Link>
+                        ) : (
+                            <button
+                                onClick={() => openAuthModal('register')}
+                                className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 px-8 py-3.5 text-sm font-black tracking-wide text-slate-950 shadow-xl shadow-amber-500/30 transition-all hover:from-amber-400 hover:to-yellow-300"
+                            >
+                                <Play className="h-4 w-4 fill-current" />
+                                <span>FOUND YOUR CITY TODAY</span>
+                            </button>
+                        )}
                     </div>
                 </div>
             </section>
@@ -799,9 +519,9 @@ export default function Welcome() {
                     </div>
 
                     <div className="flex items-center gap-6">
-                        <span>Powered by Three.js, React & Laravel 13</span>
+                        <span>Built with Three.js, React & Laravel 13</span>
                         <a
-                            href="#mayor-terminal"
+                            href="#"
                             className="font-bold text-amber-400 hover:text-amber-300"
                         >
                             Back to Top ↑
@@ -809,6 +529,237 @@ export default function Welcome() {
                     </div>
                 </div>
             </footer>
+
+            {/* COMPACT AUTH MODAL */}
+            <Dialog open={authModalOpen} onOpenChange={setAuthModalOpen}>
+                <DialogContent className="max-w-md border-slate-800 bg-slate-900/95 p-6 text-slate-100 shadow-2xl backdrop-blur-2xl sm:rounded-3xl">
+                    <DialogHeader className="space-y-1 text-left">
+                        <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase">
+                            <Crown className="h-4 w-4" />
+                            <span>Mayor Headquarters</span>
+                        </div>
+                        <DialogTitle className="text-xl font-black text-white">
+                            {authTab === 'register' ? 'Found a New City' : 'Access Your City'}
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-slate-400">
+                            {authTab === 'register'
+                                ? 'Register your mayoral account with $2,500 initial treasury capital.'
+                                : 'Enter your credentials to resume city administration.'}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {/* Tab Switcher */}
+                    <div className="my-2 flex rounded-2xl border border-slate-800 bg-slate-950/80 p-1">
+                        <button
+                            type="button"
+                            onClick={() => setAuthTab('register')}
+                            className={`flex-1 rounded-xl py-2 text-xs font-extrabold transition-all ${
+                                authTab === 'register'
+                                    ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
+                                    : 'text-slate-400 hover:text-white'
+                            }`}
+                        >
+                            Found City
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setAuthTab('login')}
+                            className={`flex-1 rounded-xl py-2 text-xs font-extrabold transition-all ${
+                                authTab === 'login'
+                                    ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/20'
+                                    : 'text-slate-400 hover:text-white'
+                            }`}
+                        >
+                            Mayor Log In
+                        </button>
+                    </div>
+
+                    {authTab === 'register' ? (
+                        /* REGISTRATION FORM */
+                        <Form
+                            {...registerStore.form()}
+                            resetOnSuccess={['password', 'password_confirmation']}
+                            disableWhileProcessing
+                            className="space-y-3.5"
+                        >
+                            {({ processing, errors }) => (
+                                <>
+                                    <div className="space-y-1">
+                                        <Label
+                                            htmlFor="modal_reg_name"
+                                            className="text-xs font-bold text-slate-300"
+                                        >
+                                            Mayor Name
+                                        </Label>
+                                        <Input
+                                            id="modal_reg_name"
+                                            name="name"
+                                            type="text"
+                                            required
+                                            autoFocus
+                                            placeholder="Mayor Alexander"
+                                            className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
+                                        />
+                                        <InputError message={errors.name} />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <Label
+                                            htmlFor="modal_reg_email"
+                                            className="text-xs font-bold text-slate-300"
+                                        >
+                                            Email Address
+                                        </Label>
+                                        <Input
+                                            id="modal_reg_email"
+                                            name="email"
+                                            type="email"
+                                            required
+                                            placeholder="mayor@metropolis.gov"
+                                            className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
+                                        />
+                                        <InputError message={errors.email} />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <div className="space-y-1">
+                                            <Label
+                                                htmlFor="modal_reg_password"
+                                                className="text-xs font-bold text-slate-300"
+                                            >
+                                                Password
+                                            </Label>
+                                            <PasswordInput
+                                                id="modal_reg_password"
+                                                name="password"
+                                                required
+                                                autoComplete="new-password"
+                                                placeholder="••••••••"
+                                                className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
+                                            />
+                                            <InputError message={errors.password} />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <Label
+                                                htmlFor="modal_reg_password_confirmation"
+                                                className="text-xs font-bold text-slate-300"
+                                            >
+                                                Confirm
+                                            </Label>
+                                            <PasswordInput
+                                                id="modal_reg_password_confirmation"
+                                                name="password_confirmation"
+                                                required
+                                                autoComplete="new-password"
+                                                placeholder="••••••••"
+                                                className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
+                                            />
+                                            <InputError message={errors.password_confirmation} />
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        type="submit"
+                                        disabled={processing}
+                                        className="mt-2 w-full rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 py-3 text-xs font-black tracking-wider text-slate-950 uppercase shadow-xl shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-yellow-300"
+                                    >
+                                        {processing ? (
+                                            <Spinner className="mr-2 h-4 w-4" />
+                                        ) : (
+                                            <Play className="mr-2 h-3.5 w-3.5 fill-current" />
+                                        )}
+                                        Found Metropolis
+                                    </Button>
+                                </>
+                            )}
+                        </Form>
+                    ) : (
+                        /* LOGIN FORM */
+                        <Form
+                            {...loginStore.form()}
+                            resetOnSuccess={['password']}
+                            disableWhileProcessing
+                            className="space-y-3.5"
+                        >
+                            {({ processing, errors }) => (
+                                <>
+                                    <div className="space-y-1">
+                                        <Label
+                                            htmlFor="modal_login_email"
+                                            className="text-xs font-bold text-slate-300"
+                                        >
+                                            Email Address
+                                        </Label>
+                                        <Input
+                                            id="modal_login_email"
+                                            name="email"
+                                            type="email"
+                                            required
+                                            autoFocus
+                                            placeholder="mayor@metropolis.gov"
+                                            className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
+                                        />
+                                        <InputError message={errors.email} />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <div className="flex items-center justify-between">
+                                            <Label
+                                                htmlFor="modal_login_password"
+                                                className="text-xs font-bold text-slate-300"
+                                            >
+                                                Password
+                                            </Label>
+                                            <Link
+                                                href={passwordRequest()}
+                                                className="text-[11px] text-indigo-400 underline hover:text-indigo-300"
+                                            >
+                                                Forgot?
+                                            </Link>
+                                        </div>
+                                        <PasswordInput
+                                            id="modal_login_password"
+                                            name="password"
+                                            required
+                                            autoComplete="current-password"
+                                            placeholder="••••••••"
+                                            className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
+                                        />
+                                        <InputError message={errors.password} />
+                                    </div>
+
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id="modal_remember"
+                                            name="remember"
+                                        />
+                                        <Label
+                                            htmlFor="modal_remember"
+                                            className="text-xs text-slate-400"
+                                        >
+                                            Remember this mayor terminal
+                                        </Label>
+                                    </div>
+
+                                    <Button
+                                        type="submit"
+                                        disabled={processing}
+                                        className="mt-2 w-full rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 py-3 text-xs font-black tracking-wider text-slate-950 uppercase shadow-xl shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-yellow-300"
+                                    >
+                                        {processing ? (
+                                            <Spinner className="mr-2 h-4 w-4" />
+                                        ) : (
+                                            <Play className="mr-2 h-3.5 w-3.5 fill-current" />
+                                        )}
+                                        Enter Metropolis
+                                    </Button>
+                                </>
+                            )}
+                        </Form>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
