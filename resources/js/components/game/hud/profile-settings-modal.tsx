@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { logout } from '@/routes';
-import { send } from '@/routes/verification';
 import { useTranslation } from '@/hooks/use-translation';
 import type { Auth } from '@/types';
 import {
@@ -29,8 +28,6 @@ import {
 type SettingsTab = 'profile' | 'security' | 'appearance' | 'delete';
 
 type ProfileSettingsModalProps = {
-    mustVerifyEmail: boolean;
-    status?: string;
     passwordRules: string;
     onClose: () => void;
 };
@@ -61,13 +58,7 @@ function ModalHeading({
     );
 }
 
-function ProfileTab({
-    mustVerifyEmail,
-    status,
-}: {
-    mustVerifyEmail: boolean;
-    status?: string;
-}) {
+function ProfileTab() {
     const { auth } = usePage<{ auth: Auth }>().props;
     const { t } = useTranslation();
 
@@ -130,28 +121,6 @@ function ProfileTab({
                                 message={errors.email}
                             />
                         </div>
-
-                        {mustVerifyEmail &&
-                            auth.user.email_verified_at === null && (
-                                <div>
-                                    <p className="-mt-4 text-sm text-slate-400">
-                                        {t('settings.unverified')}{' '}
-                                        <Link
-                                            href={send()}
-                                            as="button"
-                                            className="text-indigo-300 underline decoration-slate-500 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current!"
-                                        >
-                                            {t('settings.resend')}
-                                        </Link>
-                                    </p>
-
-                                    {status === 'verification-link-sent' && (
-                                        <div className="mt-2 text-sm font-medium text-emerald-400">
-                                            {t('settings.link_sent')}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
 
                         <div className="flex items-center gap-4">
                             <Button
@@ -307,8 +276,6 @@ function AppearanceTab() {
 }
 
 export default function ProfileSettingsModal({
-    mustVerifyEmail,
-    status,
     passwordRules,
     onClose,
 }: ProfileSettingsModalProps) {
@@ -376,12 +343,7 @@ export default function ProfileSettingsModal({
                     ))}
                 </div>
 
-                {activeTab === 'profile' && (
-                    <ProfileTab
-                        mustVerifyEmail={mustVerifyEmail}
-                        status={status}
-                    />
-                )}
+                {activeTab === 'profile' && <ProfileTab />}
 
                 {activeTab === 'security' && (
                     <SecurityTab passwordRules={passwordRules} />

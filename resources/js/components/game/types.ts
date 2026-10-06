@@ -59,8 +59,6 @@ export interface CitySaveData {
 }
 
 export interface GameSettingsProps {
-    mustVerifyEmail: boolean;
-    status?: string;
     passwordRules: string;
 }
 

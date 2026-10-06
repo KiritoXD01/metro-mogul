@@ -1055,8 +1055,6 @@ export default function MetroCityGame({
 
             {isProfileModalOpen && (
                 <ProfileSettingsModal
-                    mustVerifyEmail={settings?.mustVerifyEmail ?? false}
-                    status={settings?.status}
                     passwordRules={settings?.passwordRules ?? ''}
                     onClose={() => setIsProfileModalOpen(false)}
                 />
