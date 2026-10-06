@@ -6,7 +6,6 @@ use App\Jobs\NotifyBuildingCompletedJob;
 use App\Models\City;
 use App\Models\CityTile;
 use App\Models\User;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -104,7 +103,7 @@ class CityController extends Controller
         $user = $request->user();
 
         $props = [
-            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
+            'mustVerifyEmail' => false,
             'status' => $request->session()->get('status'),
             'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
             'canManagePasskeys' => Features::canManagePasskeys(),

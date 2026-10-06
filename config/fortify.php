@@ -163,7 +163,7 @@ return [
     'features' => [
         Features::registration(),
         // Temporarily disabled: Features::resetPasswords(),
-        Features::emailVerification(),
+        // Temporarily disabled: Features::emailVerification(),
         // Temporarily disabled: Features::twoFactorAuthentication([
         //     'confirm' => true,
         //     'confirmPassword' => true,
