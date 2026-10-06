@@ -1,8 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import * as THREE from 'three';
 import { toast } from 'sonner';
 import { echo } from '@laravel/echo-react';
 import { BUILDING_TYPES, GRID_SIZE, getBuildingHeight } from './buildings';
+import {
+    DEFAULT_GRID_SIZE,
+    DEFAULT_MAX_LEVEL,
+    DEFAULT_MAX_MONEY,
+} from './game-limits';
 import type {
     BuildingDefinition,
     FloatingText,
@@ -32,6 +37,7 @@ export { createBuildingMesh } from './building-meshes';
 export { getRoadTexture } from './road-texture';
 export type {
     BuildingDefinition,
+    CityLimits,
     CityModelData,
     CitySaveData,
     FloatingText,
@@ -49,19 +55,39 @@ export default function MetroCityGame({
     userId,
     onSave,
     onResetCity,
+    onExpandMap,
     settings,
 }: MetroCityGameProps) {
     const { t } = useTranslation();
 
+    const maxLevel = initialCity.limits?.maxLevel ?? DEFAULT_MAX_LEVEL;
+    const maxMoney = initialCity.limits?.maxMoney ?? DEFAULT_MAX_MONEY;
+
     const buildingName = (type: string): string =>
         t(`building.${type}.name`, BUILDING_TYPES[type]?.name ?? type);
 
+    const clampMoney = useCallback(
+        (value: number) => Math.min(maxMoney, Math.max(0, value)),
+        [maxMoney],
+    );
+
     // Game Economy State
     const [cityName, setCityName] = useState(initialCity.name || 'Metropolis');
-    const [money, setMoney] = useState(initialCity.money ?? 2500);
+    const [money, setMoney] = useState(() =>
+        clampMoney(initialCity.money ?? 2500),
+    );
     const [population, setPopulation] = useState(initialCity.population ?? 0);
     const [xp, setXp] = useState(initialCity.xp ?? 0);
-    const [level, setLevel] = useState(initialCity.level ?? 1);
+    const [level, setLevel] = useState(() =>
+        Math.min(maxLevel, initialCity.level ?? 1),
+    );
+    const [gridSize, setGridSize] = useState(
+        initialCity.gridSize ?? DEFAULT_GRID_SIZE,
+    );
+    const [cityLimits, setCityLimits] = useState<CityLimits | undefined>(
+        initialCity.limits,
+    );
+    const [isExpandingMap, setIsExpandingMap] = useState(false);
     const [soundEnabled, setSoundEnabled] = useState(true);
 
     // Construction State
@@ -289,7 +315,7 @@ export default function MetroCityGame({
             1000,
         );
         camera.position.set(20, 20, 20);
-        camera.lookAt(GRID_SIZE / 2, 0, GRID_SIZE / 2);
+        camera.lookAt(gridSize / 2, 0, gridSize / 2);
         cameraRef.current = camera;
 
         // 3. Renderer
@@ -324,8 +350,8 @@ export default function MetroCityGame({
 
         // 5. Ground Grid Base
         const gridGroup = new THREE.Group();
-        for (let x = 0; x < GRID_SIZE; x++) {
-            for (let z = 0; z < GRID_SIZE; z++) {
+        for (let x = 0; x < gridSize; x++) {
+            for (let z = 0; z < gridSize; z++) {
                 const tileGeo = new THREE.BoxGeometry(0.96, 0.1, 0.96);
                 const isAlternate = (x + z) % 2 === 0;
                 const tileMat = new THREE.MeshStandardMaterial({
@@ -432,7 +458,7 @@ export default function MetroCityGame({
             // 1. Cloud movement
             cloudsGroup.children.forEach((cloud) => {
                 cloud.position.x += delta * 0.3;
-                if (cloud.position.x > GRID_SIZE + 10) {
+                if (cloud.position.x > gridSize + 10) {
                     cloud.position.x = -10;
                 }
             });
@@ -491,7 +517,7 @@ export default function MetroCityGame({
                 currentMount.removeChild(renderer.domElement);
             }
         };
-    }, []);
+    }, [gridSize]);
 
     // Update Scene Objects when gridData changes
     useEffect(() => {
@@ -760,7 +786,7 @@ export default function MetroCityGame({
                         buildStartedAt + buildDuration * 1000;
 
                     // Deduct cost and add XP
-                    setMoney((prev) => prev - bDef.cost);
+                    setMoney((prev) => clampMoney(prev - bDef.cost));
                     addXP(bDef.xp);
 
                     // If immediate, population moves in now, otherwise when construction finishes
@@ -825,7 +851,7 @@ export default function MetroCityGame({
                 const bDef = BUILDING_TYPES[existing.type];
                 if (bDef) {
                     const reward = bDef.income;
-                    setMoney((prev) => prev + reward);
+                    setMoney((prev) => clampMoney(prev + reward));
                     addXP(Math.floor(bDef.xp / 2));
 
                     // Reset timer
@@ -855,7 +881,7 @@ export default function MetroCityGame({
         setXp((prevXP) => {
             const nextXP = prevXP + amount;
             const xpToNextLevel = level * 100;
-            if (nextXP >= xpToNextLevel) {
+            if (nextXP >= xpToNextLevel && level < maxLevel) {
                 const nextLvl = level + 1;
                 setLevel(nextLvl);
                 playSound('levelup', soundEnabled);
@@ -907,7 +933,7 @@ export default function MetroCityGame({
         const bDef = BUILDING_TYPES[existing.type];
         if (!bDef) return;
         const reward = bDef.income;
-        setMoney((prev) => prev + reward);
+        setMoney((prev) => clampMoney(prev + reward));
         addXP(Math.floor(bDef.xp / 2));
 
         // Reset timer
@@ -972,8 +998,119 @@ export default function MetroCityGame({
         if (!camera) return;
         camera.zoom = 1.0;
         camera.position.set(20, 20, 20);
-        camera.lookAt(GRID_SIZE / 2, 0, GRID_SIZE / 2);
+        camera.lookAt(gridSize / 2, 0, gridSize / 2);
         camera.updateProjectionMatrix();
+    };
+
+    const readyCollectibleCount = useMemo(() => {
+        return Object.values(gridData).filter((item) => {
+            const bDef = BUILDING_TYPES[item.type];
+            return (
+                (item.isConstructed ?? true) &&
+                item.isReady &&
+                bDef &&
+                bDef.income > 0
+            );
+        }).length;
+    }, [gridData]);
+
+    const handleCollectAll = () => {
+        if (readyCollectibleCount === 0) {
+            toast.message(t('game.collect_all_empty'));
+            return;
+        }
+
+        let totalReward = 0;
+        let totalXp = 0;
+        let collected = 0;
+        const now = Date.now();
+        const updated: GridData = { ...gridData };
+
+        Object.keys(updated).forEach((key) => {
+            const item = updated[key];
+            const bDef = BUILDING_TYPES[item.type];
+            if (
+                !bDef ||
+                bDef.income <= 0 ||
+                !(item.isConstructed ?? true) ||
+                !item.isReady
+            ) {
+                return;
+            }
+
+            totalReward += bDef.income;
+            totalXp += Math.floor(bDef.xp / 2);
+            collected += 1;
+            updated[key] = {
+                ...item,
+                isReady: false,
+                harvestReadyAt: now + bDef.timer * 1000,
+            };
+        });
+
+        setGridData(updated);
+        setMoney((prev) => clampMoney(prev + totalReward));
+        if (totalXp > 0) {
+            addXP(totalXp);
+        }
+
+        playSound('collect', soundEnabled);
+        toast.success(
+            t('game.collect_all_success', {
+                total: totalReward.toLocaleString(),
+                count: collected,
+            }),
+        );
+    };
+
+    const handleExpandMap = async () => {
+        if (!onExpandMap || isExpandingMap) {
+            return;
+        }
+
+        if (!cityLimits?.canExpand) {
+            toast.error(t('game.map_expansion_max_reached'));
+            return;
+        }
+
+        if (level < (cityLimits?.mapExpansionMinLevel ?? 8)) {
+            toast.error(
+                t('game.map_expansion_level_required', {
+                    level: cityLimits?.mapExpansionMinLevel ?? 8,
+                }),
+            );
+            return;
+        }
+
+        const cost = cityLimits?.mapExpansionCost ?? 75_000;
+        if (money < cost) {
+            toast.error(t('game.map_expansion_insufficient_funds'));
+            return;
+        }
+
+        try {
+            setIsExpandingMap(true);
+            const city = await onExpandMap();
+            setMoney(clampMoney(city.money));
+            setGridSize(city.gridSize ?? gridSize);
+            setCityLimits(city.limits);
+            playSound('levelup', soundEnabled);
+            toast.success(
+                t('game.expand_map_success', {
+                    size: city.gridSize ?? gridSize,
+                }),
+            );
+            resetCamera();
+        } catch (error) {
+            playSound('error', soundEnabled);
+            toast.error(
+                error instanceof Error && error.message
+                    ? error.message
+                    : t('game.map_expansion_insufficient_funds'),
+            );
+        } finally {
+            setIsExpandingMap(false);
+        }
     };
 
     const handleStartNewCitySubmit = async (e: React.FormEvent) => {
@@ -983,10 +1120,16 @@ export default function MetroCityGame({
             await onResetCity(chosenName);
         }
         setCityName(chosenName);
-        setMoney(2500);
+        setMoney(clampMoney(2500));
         setPopulation(0);
         setXp(0);
         setLevel(1);
+        setGridSize(DEFAULT_GRID_SIZE);
+        setCityLimits(
+            initialCity.limits
+                ? { ...initialCity.limits, canExpand: true }
+                : undefined,
+        );
         setGridData({});
         setSelectedBuilding(null);
         setSelectedTool(null);
@@ -1012,12 +1155,22 @@ export default function MetroCityGame({
                 population={population}
                 xp={xp}
                 level={level}
+                maxMoney={maxMoney}
+                readyCollectibleCount={readyCollectibleCount}
+                canExpandMap={cityLimits?.canExpand ?? false}
+                mapExpansionCost={cityLimits?.mapExpansionCost ?? 75_000}
+                gridSize={gridSize}
+                isExpandingMap={isExpandingMap}
                 saveStatus={saveStatus}
                 soundEnabled={soundEnabled}
                 onSave={() => {
                     void triggerSave();
                 }}
                 onNewCity={() => setIsResetModalOpen(true)}
+                onCollectAll={handleCollectAll}
+                onExpandMap={() => {
+                    void handleExpandMap();
+                }}
                 onProfileClick={() => setIsProfileModalOpen(true)}
                 onFeedbackClick={() => setIsFeedbackModalOpen(true)}
                 onToggleSound={() => setSoundEnabled(!soundEnabled)}

@@ -3,6 +3,8 @@ import {
     CheckCircle2,
     Coins,
     Crown,
+    HandCoins,
+    Map,
     MessageSquare,
     RotateCcw,
     RotateCw,
@@ -25,10 +27,18 @@ interface TopHudProps {
     population: number;
     xp: number;
     level: number;
+    maxMoney: number;
+    readyCollectibleCount: number;
+    canExpandMap: boolean;
+    mapExpansionCost: number;
+    gridSize: number;
+    isExpandingMap: boolean;
     saveStatus: SaveStatus;
     soundEnabled: boolean;
     onSave: () => void;
     onNewCity: () => void;
+    onCollectAll: () => void;
+    onExpandMap: () => void;
     onProfileClick: () => void;
     onFeedbackClick: () => void;
     onToggleSound: () => void;
@@ -44,10 +54,18 @@ export default function TopHud({
     population,
     xp,
     level,
+    maxMoney,
+    readyCollectibleCount,
+    canExpandMap,
+    mapExpansionCost,
+    gridSize,
+    isExpandingMap,
     saveStatus,
     soundEnabled,
     onSave,
     onNewCity,
+    onCollectAll,
+    onExpandMap,
     onProfileClick,
     onFeedbackClick,
     onToggleSound,
@@ -108,11 +126,38 @@ export default function TopHud({
                         <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                             {t('hud.treasury')}
                         </div>
-                        <div className="text-lg font-extrabold text-emerald-400">
+                        <div
+                            className="text-lg font-extrabold text-emerald-400"
+                            title={
+                                money >= maxMoney * 0.95
+                                    ? t('game.max_treasury_reached', {
+                                          max: maxMoney.toLocaleString(),
+                                      })
+                                    : undefined
+                            }
+                        >
                             ${money.toLocaleString()}
                         </div>
                     </div>
                 </div>
+
+                <button
+                    type="button"
+                    onClick={onCollectAll}
+                    disabled={readyCollectibleCount === 0}
+                    className="relative flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-emerald-300 transition-all hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                    title={t('game.collect_all')}
+                >
+                    <HandCoins className="h-4 w-4" />
+                    <span className="hidden text-xs font-bold sm:inline">
+                        {t('game.collect_all')}
+                    </span>
+                    {readyCollectibleCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-slate-950">
+                            {readyCollectibleCount}
+                        </span>
+                    )}
+                </button>
 
                 <div className="h-8 w-px bg-slate-700/60" />
 
@@ -177,6 +222,21 @@ export default function TopHud({
                     <RotateCw className="h-4 w-4 text-amber-400" />
                     <span className="hidden text-xs font-bold sm:inline">
                         {t('hud.new_city')}
+                    </span>
+                </button>
+                <button
+                    type="button"
+                    onClick={onExpandMap}
+                    disabled={!canExpandMap || isExpandingMap}
+                    className="flex items-center gap-1 rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
+                    title={t('game.expand_map_cost', {
+                        size: gridSize + 4,
+                        cost: mapExpansionCost.toLocaleString(),
+                    })}
+                >
+                    <Map className="h-4 w-4 text-sky-400" />
+                    <span className="hidden text-xs font-bold sm:inline">
+                        {t('game.expand_map')}
                     </span>
                 </button>
                 <div className="mx-1 h-6 w-px bg-slate-700/60" />

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CityGrid;
 use Database\Factories\CityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
@@ -21,13 +22,14 @@ use Illuminate\Support\Str;
  * @property int $population
  * @property int $xp
  * @property int $level
+ * @property int $map_expansions
  * @property array<string, mixed> $grid_data
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read User $user
  * @property-read Collection<int, CityTile> $tiles
  */
-#[Fillable(['user_id', 'name', 'money', 'population', 'xp', 'level', 'grid_data', 'ulid'])]
+#[Fillable(['user_id', 'name', 'money', 'population', 'xp', 'level', 'map_expansions', 'grid_data', 'ulid'])]
 class City extends Model
 {
     /** @use HasFactory<CityFactory> */
@@ -49,7 +51,18 @@ class City extends Model
             'population' => 'integer',
             'xp' => 'integer',
             'level' => 'integer',
+            'map_expansions' => 'integer',
         ];
+    }
+
+    public function gridSize(): int
+    {
+        return CityGrid::gridSizeFor((int) $this->map_expansions);
+    }
+
+    public function canExpandMap(): bool
+    {
+        return (int) $this->map_expansions < (int) config('game.max_map_expansions');
     }
 
     protected static function booted(): void

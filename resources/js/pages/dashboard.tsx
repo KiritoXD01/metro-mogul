@@ -48,6 +48,37 @@ export default function Dashboard({ city, ...settings }: DashboardProps) {
         });
     };
 
+    const handleExpandMap = (): Promise<CityModelData> => {
+        return fetch('/city/expand-map', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN':
+                    (
+                        document.querySelector(
+                            'meta[name="csrf-token"]',
+                        ) as HTMLMetaElement
+                    )?.content || '',
+            },
+        }).then(async (response) => {
+            const payload = (await response.json()) as {
+                city?: CityModelData;
+                message?: string;
+            };
+
+            if (!response.ok) {
+                throw new Error(payload.message ?? 'Expand failed');
+            }
+
+            if (!payload.city) {
+                throw new Error('Expand failed');
+            }
+
+            return payload.city;
+        });
+    };
+
     return (
         <>
             <Head title={`${city.name} - Metro Mogul 3D`} />
@@ -58,6 +89,7 @@ export default function Dashboard({ city, ...settings }: DashboardProps) {
                     userId={auth?.user?.id}
                     onSave={handleSave}
                     onResetCity={handleResetCity}
+                    onExpandMap={handleExpandMap}
                     settings={settings}
                 />
             </main>

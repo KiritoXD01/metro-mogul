@@ -87,6 +87,107 @@ test('updating city validates required fields', function () {
         ->assertJsonValidationErrors(['money', 'population', 'xp', 'level', 'grid_data']);
 });
 
+test('updating city rejects money above the treasury cap', function () {
+    $user = User::factory()->create();
+    City::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)
+        ->putJson(route('city.update'), [
+            'name' => 'Metro',
+            'money' => 500_001,
+            'population' => 0,
+            'xp' => 0,
+            'level' => 1,
+            'grid_data' => [],
+        ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['money']);
+});
+
+test('updating city rejects level above the mayor cap', function () {
+    $user = User::factory()->create();
+    City::factory()->create(['user_id' => $user->id]);
+
+    $response = $this->actingAs($user)
+        ->putJson(route('city.update'), [
+            'name' => 'Metro',
+            'money' => 2500,
+            'population' => 0,
+            'xp' => 0,
+            'level' => 41,
+            'grid_data' => [],
+        ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['level']);
+});
+
+test('updating city rejects tiles outside the current grid bounds', function () {
+    $user = User::factory()->create();
+    City::factory()->create(['user_id' => $user->id, 'map_expansions' => 0]);
+
+    $response = $this->actingAs($user)
+        ->putJson(route('city.update'), [
+            'name' => 'Metro',
+            'money' => 2500,
+            'population' => 0,
+            'xp' => 0,
+            'level' => 1,
+            'grid_data' => [
+                '15,15' => ['type' => 'road'],
+            ],
+        ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['grid_data']);
+});
+
+test('authenticated user can expand the map once when requirements are met', function () {
+    $user = User::factory()->create();
+    City::factory()->create([
+        'user_id' => $user->id,
+        'money' => 100_000,
+        'level' => 8,
+        'map_expansions' => 0,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->postJson(route('city.expand-map'));
+
+    $response->assertOk()
+        ->assertJsonPath('status', 'expanded')
+        ->assertJsonPath('city.gridSize', 16)
+        ->assertJsonPath('city.mapExpansions', 1)
+        ->assertJsonPath('city.money', 25_000);
+
+    expect($user->fresh()->city->map_expansions)->toBe(1)
+        ->and($user->fresh()->city->gridSize())->toBe(16);
+});
+
+test('cannot expand the map without sufficient funds or twice', function () {
+    $user = User::factory()->create();
+    City::factory()->create([
+        'user_id' => $user->id,
+        'money' => 10_000,
+        'level' => 10,
+        'map_expansions' => 0,
+    ]);
+
+    $this->actingAs($user)
+        ->postJson(route('city.expand-map'))
+        ->assertUnprocessable();
+
+    City::query()->where('user_id', $user->id)->update([
+        'money' => 200_000,
+        'map_expansions' => 1,
+    ]);
+
+    $this->actingAs($user)
+        ->postJson(route('city.expand-map'))
+        ->assertUnprocessable();
+});
+
 test('authenticated user can reset their city to start a new metropolis', function () {
     $user = User::factory()->create();
     City::factory()->create([
@@ -116,6 +217,7 @@ test('authenticated user can reset their city to start a new metropolis', functi
         ->and($city->money)->toBe(2500)
         ->and($city->population)->toBe(0)
         ->and($city->level)->toBe(1)
+        ->and($city->map_expansions)->toBe(0)
         ->and($city->grid_data)->toBeEmpty();
 });
 

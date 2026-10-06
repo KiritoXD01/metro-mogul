@@ -37,6 +37,15 @@ export interface FloatingText {
     y: number;
 }
 
+export interface CityLimits {
+    maxLevel: number;
+    maxMoney: number;
+    maxMapExpansions: number;
+    mapExpansionCost: number;
+    mapExpansionMinLevel: number;
+    canExpand: boolean;
+}
+
 export interface CityModelData {
     id: number;
     ulid: string;
@@ -45,8 +54,11 @@ export interface CityModelData {
     population: number;
     xp: number;
     level: number;
+    mapExpansions?: number;
+    gridSize?: number;
     gridData: GridData;
     updatedAt?: string | null;
+    limits?: CityLimits;
 }
 
 export interface CitySaveData {
@@ -68,6 +80,7 @@ export interface MetroCityGameProps {
     userId?: number;
     onSave?: (data: CitySaveData) => Promise<void> | void;
     onResetCity?: (newCityName: string) => Promise<void> | void;
+    onExpandMap?: () => Promise<CityModelData>;
     settings?: GameSettingsProps;
 }
 

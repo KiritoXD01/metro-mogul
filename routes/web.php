@@ -13,6 +13,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', [CityController::class, 'show'])->name('dashboard');
     Route::put('city', [CityController::class, 'update'])->name('city.update');
     Route::post('city/reset', [CityController::class, 'reset'])->name('city.reset');
+    Route::post('city/expand-map', [CityController::class, 'expandMap'])
+        ->middleware('throttle:10,1')
+        ->name('city.expand-map');
     Route::post('city/construction/start', [CityController::class, 'startConstruction'])->name('city.construction.start');
 
     Route::post('feedback', [FeedbackController::class, 'store'])

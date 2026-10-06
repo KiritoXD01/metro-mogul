@@ -6,10 +6,13 @@ use App\Jobs\NotifyBuildingCompletedJob;
 use App\Models\City;
 use App\Models\CityTile;
 use App\Models\User;
+use App\Support\CityGrid;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Fortify\Features;
@@ -85,9 +88,67 @@ class CityController extends Controller
             'population' => $city->population,
             'xp' => $city->xp,
             'level' => $city->level,
+            'mapExpansions' => (int) $city->map_expansions,
+            'gridSize' => $city->gridSize(),
             'gridData' => $city->grid_data ?? [],
             'updatedAt' => $city->updated_at?->toISOString(),
+            'limits' => $this->limitsPayload($city),
         ];
+    }
+
+    /**
+     * @return array<string, int|bool>
+     */
+    private function limitsPayload(City $city): array
+    {
+        return [
+            'maxLevel' => (int) config('game.max_level'),
+            'maxMoney' => (int) config('game.max_money'),
+            'maxMapExpansions' => (int) config('game.max_map_expansions'),
+            'mapExpansionCost' => (int) config('game.map_expansion_cost'),
+            'mapExpansionMinLevel' => (int) config('game.map_expansion_min_level'),
+            'canExpand' => $city->canExpandMap(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validateCityUpdate(Request $request, City $city): array
+    {
+        $validated = $request->validate([
+            'name' => ['nullable', 'string', 'max:100'],
+            'money' => ['required', 'integer', 'min:0', 'max:'.config('game.max_money')],
+            'population' => ['required', 'integer', 'min:0'],
+            'xp' => ['required', 'integer', 'min:0'],
+            'level' => ['required', 'integer', 'min:1', 'max:'.config('game.max_level')],
+            'grid_data' => ['present', 'nullable', 'array'],
+        ]);
+
+        $grid = $validated['grid_data'] ?? [];
+
+        if (! CityGrid::gridDataWithinBounds(is_array($grid) ? $grid : [], $city->gridSize())) {
+            throw ValidationException::withMessages([
+                'grid_data' => [__('game.invalid_tile')],
+            ]);
+        }
+
+        return $validated;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function persistCityUpdate(City $city, array $validated): void
+    {
+        $city->update([
+            'name' => $validated['name'] ?? $city->name,
+            'money' => $validated['money'],
+            'population' => $validated['population'],
+            'xp' => $validated['xp'],
+            'level' => $validated['level'],
+            'grid_data' => $validated['grid_data'] ?? [],
+        ]);
     }
 
     /**
@@ -186,25 +247,11 @@ class CityController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $validated = $request->validate([
-            'name' => ['nullable', 'string', 'max:100'],
-            'money' => ['required', 'integer', 'min:0'],
-            'population' => ['required', 'integer', 'min:0'],
-            'xp' => ['required', 'integer', 'min:0'],
-            'level' => ['required', 'integer', 'min:1'],
-            'grid_data' => ['present', 'nullable', 'array'],
-        ]);
-
         $city = $this->cityFor($user);
 
-        $city->update([
-            'name' => $validated['name'] ?? $city->name,
-            'money' => $validated['money'],
-            'population' => $validated['population'],
-            'xp' => $validated['xp'],
-            'level' => $validated['level'],
-            'grid_data' => $validated['grid_data'] ?? [],
-        ]);
+        $validated = $this->validateCityUpdate($request, $city);
+
+        $this->persistCityUpdate($city, $validated);
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -223,23 +270,9 @@ class CityController extends Controller
     {
         $this->authorizeCity($request, $city);
 
-        $validated = $request->validate([
-            'name' => ['nullable', 'string', 'max:100'],
-            'money' => ['required', 'integer', 'min:0'],
-            'population' => ['required', 'integer', 'min:0'],
-            'xp' => ['required', 'integer', 'min:0'],
-            'level' => ['required', 'integer', 'min:1'],
-            'grid_data' => ['present', 'nullable', 'array'],
-        ]);
+        $validated = $this->validateCityUpdate($request, $city);
 
-        $city->update([
-            'name' => $validated['name'] ?? $city->name,
-            'money' => $validated['money'],
-            'population' => $validated['population'],
-            'xp' => $validated['xp'],
-            'level' => $validated['level'],
-            'grid_data' => $validated['grid_data'] ?? [],
-        ]);
+        $this->persistCityUpdate($city, $validated);
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -275,6 +308,7 @@ class CityController extends Controller
             'population' => 0,
             'xp' => 0,
             'level' => 1,
+            'map_expansions' => 0,
             'grid_data' => [],
         ]);
 
@@ -286,6 +320,52 @@ class CityController extends Controller
         }
 
         return redirect()->route('dashboard')->with('status', 'New city founded');
+    }
+
+    /**
+     * Expand the buildable map grid (authoritative purchase).
+     */
+    public function expandMap(Request $request): JsonResponse|RedirectResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $city = $this->cityFor($user);
+
+        if (! $city->canExpandMap()) {
+            return response()->json([
+                'message' => __('game.map_expansion_max_reached'),
+            ], 422);
+        }
+
+        $minLevel = (int) config('game.map_expansion_min_level');
+        if ($city->level < $minLevel) {
+            return response()->json([
+                'message' => __('game.map_expansion_level_required', ['level' => $minLevel]),
+            ], 422);
+        }
+
+        $cost = (int) config('game.map_expansion_cost');
+        if ($city->money < $cost) {
+            return response()->json([
+                'message' => __('game.map_expansion_insufficient_funds'),
+            ], 422);
+        }
+
+        DB::transaction(function () use ($city, $cost): void {
+            $city->update([
+                'money' => $city->money - $cost,
+                'map_expansions' => (int) $city->map_expansions + 1,
+            ]);
+        });
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => 'expanded',
+                'city' => $this->cityPayload($city->refresh()),
+            ]);
+        }
+
+        return back()->with('status', 'Map expanded');
     }
 
     /**
