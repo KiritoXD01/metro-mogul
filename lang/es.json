@@ -86,6 +86,17 @@
     "hud.reset_camera": "Restablecer cámara",
     "hud.profile": "Perfil",
     "hud.profile_settings": "Perfil y ajustes del alcalde",
+    "hud.send_feedback": "Enviar comentarios",
+
+    "feedback.title": "Enviar comentarios",
+    "feedback.description": "Cuéntanos qué piensas de Metro Mogul. Tu mensaje se guardará para que el equipo lo revise.",
+    "feedback.message_label": "Tu mensaje",
+    "feedback.placeholder": "Ideas, errores o lo que se te ocurra…",
+    "feedback.submit": "Enviar",
+    "feedback.cancel": "Cancelar",
+    "feedback.sent": "Gracias — recibimos tus comentarios.",
+    "feedback.too_many": "Has enviado muchos comentarios recientemente. Inténtalo más tarde.",
+    "feedback.character_count": ":current / :max",
 
     "shop.housing": "Viviendas",
     "shop.businesses": "Negocios",

@@ -22,6 +22,7 @@ import type { ShopCategory } from './hud/shop-toolbar';
 import InspectionModal from './hud/inspection-modal';
 import NewCityModal from './hud/new-city-modal';
 import ProfileSettingsModal from './hud/profile-settings-modal';
+import FeedbackModal from './hud/feedback-modal';
 import { useTranslation } from '@/hooks/use-translation';
 
 // Backwards-compatible re-exports for existing importers.
@@ -119,6 +120,7 @@ export default function MetroCityGame({
     // Modals & Save states
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [newCityNameInput, setNewCityNameInput] = useState('');
     const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
     const lastSavedRef = useRef<string>('');
@@ -1017,6 +1019,7 @@ export default function MetroCityGame({
                 }}
                 onNewCity={() => setIsResetModalOpen(true)}
                 onProfileClick={() => setIsProfileModalOpen(true)}
+                onFeedbackClick={() => setIsFeedbackModalOpen(true)}
                 onToggleSound={() => setSoundEnabled(!soundEnabled)}
                 onZoomIn={() => adjustZoom(0.2)}
                 onZoomOut={() => adjustZoom(-0.2)}
@@ -1057,6 +1060,12 @@ export default function MetroCityGame({
                 <ProfileSettingsModal
                     passwordRules={settings?.passwordRules ?? ''}
                     onClose={() => setIsProfileModalOpen(false)}
+                />
+            )}
+
+            {isFeedbackModalOpen && (
+                <FeedbackModal
+                    onClose={() => setIsFeedbackModalOpen(false)}
                 />
             )}
         </div>

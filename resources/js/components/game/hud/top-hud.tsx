@@ -3,6 +3,7 @@ import {
     CheckCircle2,
     Coins,
     Crown,
+    MessageSquare,
     RotateCcw,
     RotateCw,
     Save,
@@ -29,6 +30,7 @@ interface TopHudProps {
     onSave: () => void;
     onNewCity: () => void;
     onProfileClick: () => void;
+    onFeedbackClick: () => void;
     onToggleSound: () => void;
     onZoomIn: () => void;
     onZoomOut: () => void;
@@ -47,6 +49,7 @@ export default function TopHud({
     onSave,
     onNewCity,
     onProfileClick,
+    onFeedbackClick,
     onToggleSound,
     onZoomIn,
     onZoomOut,
@@ -210,6 +213,13 @@ export default function TopHud({
                     <RotateCcw className="h-4 w-4" />
                 </button>
                 <LanguageSwitcher className="border-slate-700/60" />
+                <button
+                    onClick={onFeedbackClick}
+                    className="rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
+                    title={t('hud.send_feedback')}
+                >
+                    <MessageSquare className="h-4 w-4" />
+                </button>
                 <button
                     onClick={onProfileClick}
                     className="ml-1 rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
