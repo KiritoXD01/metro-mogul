@@ -49,7 +49,12 @@ function formatBuildTime(seconds?: number, instant = 'Instant'): string {
 }
 
 // 4 signature buildings featured by default
-const SIGNATURE_BUILDING_IDS = ['small_house', 'coffee_shop', 'villa', 'tech_office'];
+const SIGNATURE_BUILDING_IDS = [
+    'small_house',
+    'coffee_shop',
+    'villa',
+    'tech_office',
+];
 
 export default function Welcome() {
     const { auth } = usePage<{ auth: Auth }>().props;
@@ -274,21 +279,27 @@ export default function Welcome() {
                                 <div className="text-[10px] font-semibold text-amber-400 uppercase">
                                     {t('showcase.tag_3d')}
                                 </div>
-                                <div className="text-white">{t('showcase.procedural')}</div>
+                                <div className="text-white">
+                                    {t('showcase.procedural')}
+                                </div>
                             </div>
 
-                            <div className="pointer-events-none absolute bottom-16 right-4 hidden rounded-xl border border-emerald-500/30 bg-slate-950/85 px-3 py-1.5 text-left text-xs font-bold text-slate-200 shadow-xl backdrop-blur-md md:block">
+                            <div className="pointer-events-none absolute right-4 bottom-16 hidden rounded-xl border border-emerald-500/30 bg-slate-950/85 px-3 py-1.5 text-left text-xs font-bold text-slate-200 shadow-xl backdrop-blur-md md:block">
                                 <div className="text-[10px] font-semibold text-emerald-400 uppercase">
                                     {t('showcase.harvest')}
                                 </div>
-                                <div className="text-white">{t('showcase.coins_ready')}</div>
+                                <div className="text-white">
+                                    {t('showcase.coins_ready')}
+                                </div>
                             </div>
 
                             {/* Center Hover Action for Guests */}
                             {!user && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-slate-950/20 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100">
                                     <button
-                                        onClick={() => openAuthModal('register')}
+                                        onClick={() =>
+                                            openAuthModal('register')
+                                        }
                                         className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 px-6 py-3 text-xs font-black tracking-wider text-slate-950 uppercase shadow-2xl transition-all hover:scale-105"
                                     >
                                         <Play className="h-4 w-4 fill-current" />
@@ -383,10 +394,16 @@ export default function Welcome() {
                         </div>
 
                         <button
-                            onClick={() => setShowAllBlueprints(!showAllBlueprints)}
+                            onClick={() =>
+                                setShowAllBlueprints(!showAllBlueprints)
+                            }
                             className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-xs font-bold text-slate-300 transition-all hover:border-slate-700 hover:text-white"
                         >
-                            <span>{showAllBlueprints ? t('blueprints.show_signature') : t('blueprints.show_all')}</span>
+                            <span>
+                                {showAllBlueprints
+                                    ? t('blueprints.show_signature')
+                                    : t('blueprints.show_all')}
+                            </span>
                             {showAllBlueprints ? (
                                 <ChevronUp className="h-4 w-4" />
                             ) : (
@@ -409,20 +426,29 @@ export default function Welcome() {
                                             <div className="flex items-center gap-3">
                                                 <div
                                                     className="flex h-10 w-10 items-center justify-center rounded-xl font-bold text-white shadow-md"
-                                                    style={{ backgroundColor: b.color }}
+                                                    style={{
+                                                        backgroundColor:
+                                                            b.color,
+                                                    }}
                                                 >
                                                     <Icon className="h-5 w-5" />
                                                 </div>
                                                 <div>
                                                     <h3 className="text-sm font-bold text-white transition-colors group-hover:text-amber-300">
-                                                        {t(`building.${b.id}.name`, b.name)}
+                                                        {t(
+                                                            `building.${b.id}.name`,
+                                                            b.name,
+                                                        )}
                                                     </h3>
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                                                             {b.category}
                                                         </span>
-                                                        <span className="inline-flex items-center rounded-md border border-amber-400/20 bg-amber-400/10 px-1.5 py-0.2 text-[9px] font-bold text-amber-300">
-                                                            {t('blueprints.level')} {b.unlockLevel}
+                                                        <span className="py-0.2 inline-flex items-center rounded-md border border-amber-400/20 bg-amber-400/10 px-1.5 text-[9px] font-bold text-amber-300">
+                                                            {t(
+                                                                'blueprints.level',
+                                                            )}{' '}
+                                                            {b.unlockLevel}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -436,7 +462,10 @@ export default function Welcome() {
                                         </div>
 
                                         <p className="mb-4 text-xs leading-relaxed text-slate-300">
-                                            {t(`building.${b.id}.description`, b.description)}
+                                            {t(
+                                                `building.${b.id}.description`,
+                                                b.description,
+                                            )}
                                         </p>
                                     </div>
 
@@ -447,7 +476,10 @@ export default function Welcome() {
                                                 {t('blueprints.build')}
                                             </div>
                                             <div className="text-xs font-black text-amber-400">
-                                                {formatBuildTime(b.buildTime, t('shop.instant'))}
+                                                {formatBuildTime(
+                                                    b.buildTime,
+                                                    t('shop.instant'),
+                                                )}
                                             </div>
                                         </div>
                                         <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-1.5">
@@ -455,7 +487,9 @@ export default function Welcome() {
                                                 {t('blueprints.income')}
                                             </div>
                                             <div className="text-xs font-black text-emerald-400">
-                                                {b.income > 0 ? `+$${b.income}` : '$0'}
+                                                {b.income > 0
+                                                    ? `+$${b.income}`
+                                                    : '$0'}
                                             </div>
                                         </div>
                                         <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-1.5">
@@ -540,7 +574,9 @@ export default function Welcome() {
                             <span>{t('auth.hq')}</span>
                         </div>
                         <DialogTitle className="text-xl font-black text-white">
-                            {authTab === 'register' ? t('auth.found_title') : t('auth.access_title')}
+                            {authTab === 'register'
+                                ? t('auth.found_title')
+                                : t('auth.access_title')}
                         </DialogTitle>
                         <DialogDescription className="text-xs text-slate-400">
                             {authTab === 'register'
@@ -579,7 +615,10 @@ export default function Welcome() {
                         /* REGISTRATION FORM */
                         <Form
                             {...registerStore.form()}
-                            resetOnSuccess={['password', 'password_confirmation']}
+                            resetOnSuccess={[
+                                'password',
+                                'password_confirmation',
+                            ]}
                             disableWhileProcessing
                             className="space-y-3.5"
                         >
@@ -598,7 +637,9 @@ export default function Welcome() {
                                             type="text"
                                             required
                                             autoFocus
-                                            placeholder={t('auth.mayor_name_ph')}
+                                            placeholder={t(
+                                                'auth.mayor_name_ph',
+                                            )}
                                             className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
                                         />
                                         <InputError message={errors.name} />
@@ -638,7 +679,9 @@ export default function Welcome() {
                                                 placeholder="••••••••"
                                                 className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
                                             />
-                                            <InputError message={errors.password} />
+                                            <InputError
+                                                message={errors.password}
+                                            />
                                         </div>
 
                                         <div className="space-y-1">
@@ -656,7 +699,11 @@ export default function Welcome() {
                                                 placeholder="••••••••"
                                                 className="rounded-xl border-slate-800 bg-slate-950/80 text-white placeholder:text-slate-600"
                                             />
-                                            <InputError message={errors.password_confirmation} />
+                                            <InputError
+                                                message={
+                                                    errors.password_confirmation
+                                                }
+                                            />
                                         </div>
                                     </div>
 

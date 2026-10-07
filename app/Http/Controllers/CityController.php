@@ -7,6 +7,7 @@ use App\Models\City;
 use App\Models\CityTile;
 use App\Models\User;
 use App\Support\CityGrid;
+use App\Support\MapExpansion;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -101,13 +102,16 @@ class CityController extends Controller
      */
     private function limitsPayload(City $city): array
     {
+        $level = (int) $city->level;
+        $mapExpansions = (int) $city->map_expansions;
+
         return [
             'maxLevel' => (int) config('game.max_level'),
-            'maxMoney' => (int) config('game.max_money'),
-            'maxMapExpansions' => (int) config('game.max_map_expansions'),
             'mapExpansionCost' => (int) config('game.map_expansion_cost'),
-            'mapExpansionMinLevel' => (int) config('game.map_expansion_min_level'),
+            'allowedMapExpansions' => MapExpansion::allowedCountForLevel($level),
+            'nextExpansionLevel' => MapExpansion::minLevelForNextExpansion($mapExpansions),
             'canExpand' => $city->canExpandMap(),
+            'demolishRefundPercent' => (int) config('game.demolish_refund_percent'),
         ];
     }
 
@@ -118,7 +122,7 @@ class CityController extends Controller
     {
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:100'],
-            'money' => ['required', 'integer', 'min:0', 'max:'.config('game.max_money')],
+            'money' => ['required', 'integer', 'min:0'],
             'population' => ['required', 'integer', 'min:0'],
             'xp' => ['required', 'integer', 'min:0'],
             'level' => ['required', 'integer', 'min:1', 'max:'.config('game.max_level')],
@@ -337,7 +341,7 @@ class CityController extends Controller
             ], 422);
         }
 
-        $minLevel = (int) config('game.map_expansion_min_level');
+        $minLevel = MapExpansion::minLevelForNextExpansion((int) $city->map_expansions);
         if ($city->level < $minLevel) {
             return response()->json([
                 'message' => __('game.map_expansion_level_required', ['level' => $minLevel]),

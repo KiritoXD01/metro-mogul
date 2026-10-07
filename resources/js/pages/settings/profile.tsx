@@ -41,7 +41,9 @@ export default function Profile() {
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
-                                <Label htmlFor="name">{t('settings.name')}</Label>
+                                <Label htmlFor="name">
+                                    {t('settings.name')}
+                                </Label>
 
                                 <Input
                                     id="name"
@@ -60,7 +62,9 @@ export default function Profile() {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">{t('settings.email_address')}</Label>
+                                <Label htmlFor="email">
+                                    {t('settings.email_address')}
+                                </Label>
 
                                 <Input
                                     id="email"

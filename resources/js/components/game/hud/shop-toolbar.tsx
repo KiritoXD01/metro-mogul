@@ -169,7 +169,8 @@ export default function ShopToolbar({
                                         {isLocked ? (
                                             <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-black text-amber-300">
                                                 <Lock className="h-2.5 w-2.5" />
-                                                {t('blueprints.level')} {item.unlockLevel}
+                                                {t('blueprints.level')}{' '}
+                                                {item.unlockLevel}
                                             </span>
                                         ) : (
                                             <span
@@ -184,7 +185,10 @@ export default function ShopToolbar({
                                         )}
                                         <span className="flex items-center gap-0.5 text-[10px] font-medium text-amber-300/90">
                                             <Clock className="h-2.5 w-2.5" />
-                                            {formatDuration(item.buildTime, t('shop.instant'))}
+                                            {formatDuration(
+                                                item.buildTime,
+                                                t('shop.instant'),
+                                            )}
                                         </span>
                                     </div>
                                 </button>

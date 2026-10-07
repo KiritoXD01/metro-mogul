@@ -170,7 +170,9 @@ function SecurityTab({ passwordRules }: { passwordRules: string }) {
                             currentPasswordInput.current?.focus();
                         }
                     }}
-                    onSuccess={() => toast.success(t('settings.password_updated'))}
+                    onSuccess={() =>
+                        toast.success(t('settings.password_updated'))
+                    }
                     className="space-y-6"
                 >
                     {({ errors, processing }) => (
@@ -338,7 +340,9 @@ export default function ProfileSettingsModal({
                             }`}
                         >
                             <Icon className="h-4 w-4" />
-                            <span className="hidden sm:inline">{t(labelKey)}</span>
+                            <span className="hidden sm:inline">
+                                {t(labelKey)}
+                            </span>
                         </button>
                     ))}
                 </div>

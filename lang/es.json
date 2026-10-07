@@ -187,7 +187,10 @@
     "game.collect_all": "Recoger todas las rentas",
     "game.collect_all_empty": "No hay propiedades listas para cobrar.",
     "game.collect_all_success": "Recogiste $:total de :count propiedades.",
-    "game.max_treasury_reached": "Tope de tesorería alcanzado ($:max).",
+    "game.demolish_refund": "+$:amount de reembolso",
+    "whats_new.title": "Novedades en Metro Mogul",
+    "whats_new.multiple": ":count actualizaciones desde tu última visita",
+    "whats_new.dismiss": "A jugar",
 
     "inspect.under_construction": "En construcción",
     "inspect.remaining": "quedan :seconds",

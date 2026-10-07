@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\CityGrid;
+use App\Support\MapExpansion;
 use Database\Factories\CityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
@@ -62,7 +63,7 @@ class City extends Model
 
     public function canExpandMap(): bool
     {
-        return (int) $this->map_expansions < (int) config('game.max_map_expansions');
+        return MapExpansion::canExpand((int) $this->level, (int) $this->map_expansions);
     }
 
     protected static function booted(): void

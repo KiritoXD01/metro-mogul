@@ -27,7 +27,6 @@ interface TopHudProps {
     population: number;
     xp: number;
     level: number;
-    maxMoney: number;
     readyCollectibleCount: number;
     canExpandMap: boolean;
     mapExpansionCost: number;
@@ -54,7 +53,6 @@ export default function TopHud({
     population,
     xp,
     level,
-    maxMoney,
     readyCollectibleCount,
     canExpandMap,
     mapExpansionCost,
@@ -102,12 +100,14 @@ export default function TopHud({
                             )}
                             {saveStatus === 'saved' && (
                                 <span className="flex items-center gap-1 text-emerald-400">
-                                    <CheckCircle2 className="h-3 w-3" /> {t('hud.saved')}
+                                    <CheckCircle2 className="h-3 w-3" />{' '}
+                                    {t('hud.saved')}
                                 </span>
                             )}
                             {saveStatus === 'error' && (
                                 <span className="flex items-center gap-1 text-rose-400">
-                                    <AlertCircle className="h-3 w-3" /> {t('hud.save_failed')}
+                                    <AlertCircle className="h-3 w-3" />{' '}
+                                    {t('hud.save_failed')}
                                 </span>
                             )}
                         </div>
@@ -126,16 +126,7 @@ export default function TopHud({
                         <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                             {t('hud.treasury')}
                         </div>
-                        <div
-                            className="text-lg font-extrabold text-emerald-400"
-                            title={
-                                money >= maxMoney * 0.95
-                                    ? t('game.max_treasury_reached', {
-                                          max: maxMoney.toLocaleString(),
-                                      })
-                                    : undefined
-                            }
-                        >
+                        <div className="text-lg font-extrabold text-emerald-400">
                             ${money.toLocaleString()}
                         </div>
                     </div>
@@ -185,7 +176,9 @@ export default function TopHud({
                     </div>
                     <div>
                         <div className="flex items-center justify-between gap-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                            <span>{t('blueprints.level')} {level}</span>
+                            <span>
+                                {t('blueprints.level')} {level}
+                            </span>
                             <span>
                                 {xp}/{level * 100} XP
                             </span>
@@ -285,7 +278,9 @@ export default function TopHud({
                     className="ml-1 rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
                     title={t('hud.profile_settings')}
                 >
-                    <span className="text-xs font-bold">{t('hud.profile')}</span>
+                    <span className="text-xs font-bold">
+                        {t('hud.profile')}
+                    </span>
                 </button>
             </div>
         </header>

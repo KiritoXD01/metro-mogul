@@ -69,7 +69,10 @@ export default function InspectionModal({
                 </div>
 
                 <p className="mb-4 text-xs leading-relaxed text-slate-300">
-                    {t(`building.${building.type}.description`, bDef.description)}
+                    {t(
+                        `building.${building.type}.description`,
+                        bDef.description,
+                    )}
                 </p>
 
                 {/* Construction Status Card */}
@@ -80,7 +83,11 @@ export default function InspectionModal({
                                 <Hammer className="h-4 w-4 animate-bounce" />
                                 {t('inspect.under_construction')}
                             </span>
-                            <span>{t('inspect.remaining', { seconds: `${buildTimeLeft}s` })}</span>
+                            <span>
+                                {t('inspect.remaining', {
+                                    seconds: `${buildTimeLeft}s`,
+                                })}
+                            </span>
                         </div>
                         <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
                             <div
@@ -130,7 +137,9 @@ export default function InspectionModal({
                                 >
                                     {building.isReady
                                         ? `💰 ${t('inspect.money_ready')}`
-                                        : t('inspect.remaining', { seconds: `${harvestLeft}s` })}
+                                        : t('inspect.remaining', {
+                                              seconds: `${harvestLeft}s`,
+                                          })}
                                 </span>
                             </div>
                         )}
@@ -150,7 +159,9 @@ export default function InspectionModal({
                         onClick={() => onDemolish(building.key)}
                         className="flex-1 rounded-xl border border-rose-500/40 bg-rose-600/20 py-2.5 text-xs font-bold text-rose-300 transition-all hover:bg-rose-600 hover:text-white"
                     >
-                        {isConstructed ? t('inspect.demolish') : t('inspect.cancel_construction')}
+                        {isConstructed
+                            ? t('inspect.demolish')
+                            : t('inspect.cancel_construction')}
                     </button>
                 </div>
             </div>

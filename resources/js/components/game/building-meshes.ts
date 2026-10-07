@@ -2,6 +2,23 @@ import * as THREE from 'three';
 import type { RoadConnections } from './types';
 import { getRoadTexture } from './road-texture';
 
+const boxGeometryCache = new Map<string, THREE.BoxGeometry>();
+
+function cachedBoxGeometry(
+    width: number,
+    height: number,
+    depth: number,
+): THREE.BoxGeometry {
+    const key = `${width}x${height}x${depth}`;
+    const existing = boxGeometryCache.get(key);
+    if (existing) {
+        return existing;
+    }
+    const geometry = new THREE.BoxGeometry(width, height, depth);
+    boxGeometryCache.set(key, geometry);
+    return geometry;
+}
+
 // 3D Procedural Building Factory
 export const createBuildingMesh = (
     type: string,
@@ -11,7 +28,7 @@ export const createBuildingMesh = (
 
     switch (type) {
         case 'small_house': {
-            const bodyGeo = new THREE.BoxGeometry(0.7, 0.5, 0.7);
+            const bodyGeo = cachedBoxGeometry(0.7, 0.5, 0.7);
             const bodyMat = new THREE.MeshStandardMaterial({
                 color: 0xf5f5f5,
                 roughness: 0.4,

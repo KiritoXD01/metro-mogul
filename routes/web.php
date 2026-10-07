@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ChangelogController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\LocaleController;
@@ -17,6 +18,9 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('throttle:10,1')
         ->name('city.expand-map');
     Route::post('city/construction/start', [CityController::class, 'startConstruction'])->name('city.construction.start');
+
+    Route::post('changelog/seen', [ChangelogController::class, 'seen'])
+        ->name('changelog.seen');
 
     Route::post('feedback', [FeedbackController::class, 'store'])
         ->middleware('throttle:feedback')

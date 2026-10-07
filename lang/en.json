@@ -187,7 +187,10 @@
     "game.collect_all": "Collect all rent",
     "game.collect_all_empty": "No properties ready to collect.",
     "game.collect_all_success": "Collected $:total from :count properties.",
-    "game.max_treasury_reached": "Treasury cap reached ($:max).",
+    "game.demolish_refund": "+$:amount refund",
+    "whats_new.title": "What's New in Metro Mogul",
+    "whats_new.multiple": ":count updates since you were last here",
+    "whats_new.dismiss": "Let's play",
 
     "inspect.under_construction": "Under Construction",
     "inspect.remaining": ":seconds remaining",

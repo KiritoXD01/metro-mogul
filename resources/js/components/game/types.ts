@@ -39,11 +39,11 @@ export interface FloatingText {
 
 export interface CityLimits {
     maxLevel: number;
-    maxMoney: number;
-    maxMapExpansions: number;
     mapExpansionCost: number;
-    mapExpansionMinLevel: number;
+    allowedMapExpansions: number;
+    nextExpansionLevel: number;
     canExpand: boolean;
+    demolishRefundPercent: number;
 }
 
 export interface CityModelData {

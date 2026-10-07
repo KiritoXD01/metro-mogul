@@ -16,7 +16,8 @@ return [
     */
 
     'ssr' => [
-        'enabled' => true,
+        // Game dashboard is client-only (Three.js); SSR not used in production builds.
+        'enabled' => false,
         'url' => 'http://127.0.0.1:13714',
         // 'bundle' => base_path('bootstrap/ssr/ssr.mjs'),
 

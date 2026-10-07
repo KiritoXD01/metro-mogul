@@ -53,16 +53,15 @@ export default function LanguageSwitcher({
                     >
                         <Globe className="!size-5 opacity-80" />
                         <span className="sr-only">
-                            {t('language.name', 'Language')}: {locale.toUpperCase()}
+                            {t('language.name', 'Language')}:{' '}
+                            {locale.toUpperCase()}
                         </span>
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
                     <DropdownMenuRadioGroup
                         value={locale}
-                        onValueChange={(value) =>
-                            switchLocale(value as Locale)
-                        }
+                        onValueChange={(value) => switchLocale(value as Locale)}
                     >
                         {LOCALES.map(({ value, short, labelKey }) => (
                             <DropdownMenuRadioItem

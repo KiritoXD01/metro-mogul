@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Changelog;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,6 +42,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'changelogUnseen' => fn () => $this->changelogUnseen($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'locale' => app()->getLocale(),
             'availableLocales' => config('app.available_locales', ['en']),
@@ -49,8 +51,33 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Load the current locale's UI dictionary for the React frontend.
-     *
+     * @return array<int, array<string, mixed>>
+     */
+    protected function changelogUnseen(Request $request): array
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return [];
+        }
+
+        $releases = Changelog::releases();
+        $seenId = $user->changelog_seen_id;
+
+        if (! $seenId) {
+            return $releases;
+        }
+
+        $seenIndex = collect($releases)->search(
+            fn (array $release): bool => ($release['id'] ?? null) === $seenId
+        );
+
+        return $seenIndex === false
+            ? $releases
+            : array_slice($releases, 0, (int) $seenIndex);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function translations(): array
