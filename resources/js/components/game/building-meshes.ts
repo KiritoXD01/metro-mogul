@@ -55,6 +55,26 @@ export const createBuildingMesh = (
             const door = new THREE.Mesh(doorGeo, doorMat);
             door.position.set(0, 0.14, 0.355);
             group.add(door);
+
+            const windowGeo = cachedBoxGeometry(0.16, 0.14, 0.03);
+            const windowMat = new THREE.MeshStandardMaterial({
+                color: 0x7fdbff,
+                roughness: 0.15,
+                metalness: 0.2,
+            });
+            const windowMesh = new THREE.Mesh(windowGeo, windowMat);
+            windowMesh.position.set(0.18, 0.32, 0.355);
+            group.add(windowMesh);
+
+            const chimneyGeo = cachedBoxGeometry(0.12, 0.28, 0.12);
+            const chimneyMat = new THREE.MeshStandardMaterial({
+                color: 0x95a5a6,
+                roughness: 0.6,
+            });
+            const chimney = new THREE.Mesh(chimneyGeo, chimneyMat);
+            chimney.position.set(0.22, 0.78, -0.18);
+            chimney.castShadow = true;
+            group.add(chimney);
             break;
         }
 
@@ -97,6 +117,22 @@ export const createBuildingMesh = (
             const poolWater = new THREE.Mesh(poolWaterGeo, poolWaterMat);
             poolWater.position.set(-0.15, 0.68, 0.05);
             group.add(poolWater);
+
+            const villaWindowGeo = cachedBoxGeometry(0.14, 0.16, 0.03);
+            const villaWindowMat = new THREE.MeshStandardMaterial({
+                color: 0xfde68a,
+                emissive: 0xfde68a,
+                emissiveIntensity: 0.25,
+                roughness: 0.2,
+            });
+            for (const x of [-0.22, 0.02]) {
+                const villaWindow = new THREE.Mesh(
+                    villaWindowGeo,
+                    villaWindowMat,
+                );
+                villaWindow.position.set(x, 0.34, 0.36);
+                group.add(villaWindow);
+            }
             break;
         }
 
@@ -194,6 +230,24 @@ export const createBuildingMesh = (
             const pad = new THREE.Mesh(padGeo, padMat);
             pad.position.y = 1.62;
             group.add(pad);
+
+            const antennaGeo = cachedBoxGeometry(0.04, 0.42, 0.04);
+            const antennaMat = new THREE.MeshStandardMaterial({
+                color: 0xecf0f1,
+                metalness: 0.6,
+                roughness: 0.3,
+            });
+            const antenna = new THREE.Mesh(antennaGeo, antennaMat);
+            antenna.position.set(0, 1.85, 0);
+            antenna.castShadow = true;
+            group.add(antenna);
+
+            const antennaTip = new THREE.Mesh(
+                cachedBoxGeometry(0.08, 0.06, 0.08),
+                antennaMat,
+            );
+            antennaTip.position.set(0, 2.08, 0);
+            group.add(antennaTip);
             break;
         }
 

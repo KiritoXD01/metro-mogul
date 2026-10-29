@@ -55,6 +55,10 @@ export default function Dashboard({ city, ...settings }: DashboardProps) {
             xp: number;
             level: number;
             grid_data: GridData;
+            missions: {
+                claimed: string[];
+                collects: number;
+            };
         }) => {
             return fetch('/city', {
                 method: 'PUT',

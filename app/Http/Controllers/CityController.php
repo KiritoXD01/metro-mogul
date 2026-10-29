@@ -22,23 +22,6 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 class CityController extends Controller
 {
     /**
-     * Unlock levels required for each building type.
-     *
-     * @var array<string, int>
-     */
-    public const BUILDING_UNLOCK_LEVELS = [
-        'small_house' => 1,
-        'road' => 1,
-        'park' => 2,
-        'coffee_shop' => 2,
-        'fountain' => 3,
-        'villa' => 4,
-        'supermarket' => 5,
-        'apartment' => 6,
-        'tech_office' => 7,
-    ];
-
-    /**
      * Resolve the authenticated user's city, creating it when missing.
      */
     private function cityFor(User $user): City
@@ -94,6 +77,8 @@ class CityController extends Controller
             'gridData' => $city->grid_data ?? [],
             'updatedAt' => $city->updated_at?->toISOString(),
             'limits' => $this->limitsPayload($city),
+            'missions' => $this->normalizeMissions(is_array($city->missions) ? $city->missions : null),
+            'missionCatalog' => array_values(config('game.missions')),
         ];
     }
 
@@ -127,6 +112,10 @@ class CityController extends Controller
             'xp' => ['required', 'integer', 'min:0'],
             'level' => ['required', 'integer', 'min:1', 'max:'.config('game.max_level')],
             'grid_data' => ['present', 'nullable', 'array'],
+            'missions' => ['sometimes', 'array'],
+            'missions.claimed' => ['sometimes', 'array', 'max:50'],
+            'missions.claimed.*' => ['string', 'max:50'],
+            'missions.collects' => ['sometimes', 'integer', 'min:0', 'max:1000000'],
         ]);
 
         $grid = $validated['grid_data'] ?? [];
@@ -145,14 +134,147 @@ class CityController extends Controller
      */
     private function persistCityUpdate(City $city, array $validated): void
     {
+        $previousGrid = $city->grid_data;
+        /** @var array<string, mixed> $grid */
+        $grid = is_array($validated['grid_data'] ?? null) ? $validated['grid_data'] : [];
+        /** @var array<string, mixed>|null $incomingMissions */
+        $incomingMissions = is_array($validated['missions'] ?? null) ? $validated['missions'] : null;
+
         $city->update([
             'name' => $validated['name'] ?? $city->name,
             'money' => $validated['money'],
             'population' => $validated['population'],
             'xp' => $validated['xp'],
             'level' => $validated['level'],
-            'grid_data' => $validated['grid_data'] ?? [],
+            'grid_data' => $grid,
+            'missions' => $this->mergeMissions($city, $incomingMissions),
         ]);
+
+        $this->queueNewConstruction($city, $previousGrid, $grid);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $stored
+     * @return array{claimed: list<string>, collects: int}
+     */
+    private function normalizeMissions(?array $stored): array
+    {
+        $allowed = $this->missionIds();
+        $claimed = [];
+
+        foreach ($stored['claimed'] ?? [] as $id) {
+            if (is_string($id) && in_array($id, $allowed, true) && ! in_array($id, $claimed, true)) {
+                $claimed[] = $id;
+            }
+        }
+
+        return [
+            'claimed' => $claimed,
+            'collects' => max(0, (int) ($stored['collects'] ?? 0)),
+        ];
+    }
+
+    /**
+     * Keep claimed ids and the collect counter from shrinking across saves.
+     *
+     * @param  array<string, mixed>|null  $incoming
+     * @return array{claimed: list<string>, collects: int}
+     */
+    private function mergeMissions(City $city, ?array $incoming): array
+    {
+        $current = $this->normalizeMissions(is_array($city->missions) ? $city->missions : null);
+
+        if ($incoming === null) {
+            return $current;
+        }
+
+        $incomingState = $this->normalizeMissions($incoming);
+
+        return [
+            'claimed' => array_values(array_unique([...$current['claimed'], ...$incomingState['claimed']])),
+            'collects' => max($current['collects'], $incomingState['collects']),
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function missionIds(): array
+    {
+        $ids = [];
+
+        foreach (config('game.missions') as $mission) {
+            if (is_array($mission) && is_string($mission['id'] ?? null) && $mission['id'] !== '') {
+                $ids[] = $mission['id'];
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Queue a completion notification for tiles that just entered construction.
+     *
+     * @param  array<string, mixed>  $previousGrid
+     * @param  array<string, mixed>  $nextGrid
+     */
+    private function queueNewConstruction(City $city, array $previousGrid, array $nextGrid): void
+    {
+        foreach ($nextGrid as $tileKey => $tile) {
+            if (! is_array($tile)) {
+                continue;
+            }
+
+            $type = $tile['type'] ?? null;
+
+            if (! is_string($type) || $type === '' || ($tile['isConstructed'] ?? true)) {
+                continue;
+            }
+
+            $previous = $previousGrid[$tileKey] ?? null;
+            $alreadyBuilding = is_array($previous)
+                && ($previous['type'] ?? null) === $type
+                && ! ($previous['isConstructed'] ?? true);
+
+            if ($alreadyBuilding) {
+                continue;
+            }
+
+            /** @var array{name?: string, unlock_level?: int, build_time?: int}|null $definition */
+            $definition = config('game.buildings.'.$type);
+
+            if (! is_array($definition)) {
+                continue;
+            }
+
+            if ($city->level < (int) ($definition['unlock_level'] ?? 1)) {
+                continue;
+            }
+
+            $duration = max(0, (int) ($definition['build_time'] ?? 0));
+            $pending = NotifyBuildingCompletedJob::dispatch(
+                (int) $city->user_id,
+                (int) $city->id,
+                $type,
+                (string) ($definition['name'] ?? $type),
+                (string) $tileKey,
+            );
+
+            if ($duration > 0) {
+                $pending->delay(now()->addSeconds($duration));
+            }
+        }
+    }
+
+    private function savedResponse(Request $request): JsonResponse|RedirectResponse
+    {
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => 'saved',
+            ]);
+        }
+
+        return back()->with('status', 'City saved');
     }
 
     /**
@@ -257,14 +379,7 @@ class CityController extends Controller
 
         $this->persistCityUpdate($city, $validated);
 
-        if ($request->wantsJson()) {
-            return response()->json([
-                'status' => 'saved',
-                'city' => $this->cityPayload($city->refresh()),
-            ]);
-        }
-
-        return back()->with('status', 'City saved');
+        return $this->savedResponse($request);
     }
 
     /**
@@ -278,14 +393,7 @@ class CityController extends Controller
 
         $this->persistCityUpdate($city, $validated);
 
-        if ($request->wantsJson()) {
-            return response()->json([
-                'status' => 'saved',
-                'city' => $this->cityPayload($city->refresh()),
-            ]);
-        }
-
-        return back()->with('status', 'City saved');
+        return $this->savedResponse($request);
     }
 
     /**
@@ -313,6 +421,7 @@ class CityController extends Controller
             'xp' => 0,
             'level' => 1,
             'map_expansions' => 0,
+            'missions' => ['claimed' => [], 'collects' => 0],
             'grid_data' => [],
         ]);
 
@@ -389,7 +498,7 @@ class CityController extends Controller
 
         $city = $this->cityFor($user);
 
-        $requiredLevel = self::BUILDING_UNLOCK_LEVELS[$validated['building_type']] ?? 1;
+        $requiredLevel = (int) (config('game.buildings.'.$validated['building_type'].'.unlock_level') ?? 1);
         if ($city->level < $requiredLevel) {
             return response()->json([
                 'message' => "Requires Mayor Level {$requiredLevel} to construct.",

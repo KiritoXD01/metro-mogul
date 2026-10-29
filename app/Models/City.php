@@ -24,13 +24,14 @@ use Illuminate\Support\Str;
  * @property int $xp
  * @property int $level
  * @property int $map_expansions
+ * @property array{claimed: list<string>, collects: int}|null $missions
  * @property array<string, mixed> $grid_data
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read User $user
  * @property-read Collection<int, CityTile> $tiles
  */
-#[Fillable(['user_id', 'name', 'money', 'population', 'xp', 'level', 'map_expansions', 'grid_data', 'ulid'])]
+#[Fillable(['user_id', 'name', 'money', 'population', 'xp', 'level', 'map_expansions', 'missions', 'grid_data', 'ulid'])]
 class City extends Model
 {
     /** @use HasFactory<CityFactory> */
@@ -53,6 +54,7 @@ class City extends Model
             'xp' => 'integer',
             'level' => 'integer',
             'map_expansions' => 'integer',
+            'missions' => 'array',
         ];
     }
 

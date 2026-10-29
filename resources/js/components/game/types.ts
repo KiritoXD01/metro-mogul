@@ -46,6 +46,27 @@ export interface CityLimits {
     demolishRefundPercent: number;
 }
 
+export type MissionMetric =
+    | 'buildings'
+    | 'collects'
+    | 'population'
+    | 'level'
+    | 'expansions';
+
+export interface MissionDefinition {
+    id: string;
+    metric: MissionMetric;
+    building?: string;
+    count: number;
+    money: number;
+    xp: number;
+}
+
+export interface MissionState {
+    claimed: string[];
+    collects: number;
+}
+
 export interface CityModelData {
     id: number;
     ulid: string;
@@ -59,6 +80,8 @@ export interface CityModelData {
     gridData: GridData;
     updatedAt?: string | null;
     limits?: CityLimits;
+    missions?: MissionState;
+    missionCatalog?: MissionDefinition[];
 }
 
 export interface CitySaveData {
@@ -68,6 +91,7 @@ export interface CitySaveData {
     xp: number;
     level: number;
     grid_data: GridData;
+    missions: MissionState;
 }
 
 export interface GameSettingsProps {

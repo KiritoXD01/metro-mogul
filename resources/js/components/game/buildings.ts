@@ -40,7 +40,7 @@ export const BUILDING_TYPES: Record<string, BuildingDefinition> = {
         population: 15,
         income: 140,
         timer: 25,
-        buildTime: 300, // 5 min (as requested)
+        buildTime: 240, // 4 min
         unlockLevel: 4,
         xp: 50,
         icon: Home,
@@ -55,7 +55,7 @@ export const BUILDING_TYPES: Record<string, BuildingDefinition> = {
         population: 40,
         income: 450,
         timer: 45,
-        buildTime: 600, // 10 min
+        buildTime: 720, // 12 min
         unlockLevel: 6,
         xp: 120,
         icon: Building2,
@@ -72,7 +72,7 @@ export const BUILDING_TYPES: Record<string, BuildingDefinition> = {
         population: 0,
         income: 90,
         timer: 15,
-        buildTime: 90, // 1.5 min
+        buildTime: 120, // 2 min
         unlockLevel: 2,
         xp: 30,
         icon: Store,
@@ -87,7 +87,7 @@ export const BUILDING_TYPES: Record<string, BuildingDefinition> = {
         population: 0,
         income: 320,
         timer: 35,
-        buildTime: 420, // 7 min
+        buildTime: 400, // 6 min 40 sec
         unlockLevel: 5,
         xp: 90,
         icon: Store,
@@ -102,7 +102,7 @@ export const BUILDING_TYPES: Record<string, BuildingDefinition> = {
         population: 0,
         income: 1200,
         timer: 60,
-        buildTime: 900, // 15 min
+        buildTime: 1400, // 23 min 20 sec
         unlockLevel: 7,
         xp: 250,
         icon: Building2,
@@ -119,7 +119,7 @@ export const BUILDING_TYPES: Record<string, BuildingDefinition> = {
         population: 8,
         income: 0,
         timer: 0,
-        buildTime: 15, // 15 sec
+        buildTime: 40, // 40 sec
         unlockLevel: 2,
         xp: 20,
         icon: Trees,
@@ -134,7 +134,7 @@ export const BUILDING_TYPES: Record<string, BuildingDefinition> = {
         population: 18,
         income: 0,
         timer: 0,
-        buildTime: 45, // 45 sec
+        buildTime: 90, // 90 sec
         unlockLevel: 3,
         xp: 45,
         icon: Sparkles,
@@ -151,7 +151,7 @@ export const BUILDING_TYPES: Record<string, BuildingDefinition> = {
         population: 0,
         income: 0,
         timer: 0,
-        buildTime: 3, // 3 sec
+        buildTime: 5, // 5 sec
         unlockLevel: 1, // Level 1 (basic road)
         xp: 2,
         icon: Route,

@@ -19,6 +19,12 @@ test('authenticated user visits dashboard and automatically initializes a city',
     $response = $this->actingAs($user)->get(route('dashboard'));
 
     $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->has('city.missionCatalog', count(config('game.missions')))
+        ->where('city.missions.claimed', [])
+        ->where('city.missions.collects', 0)
+        ->where('city.missionCatalog.0.id', 'pave_roads')
+    );
     $this->assertDatabaseHas('cities', [
         'user_id' => $user->id,
         'money' => 2500,
@@ -64,9 +70,7 @@ test('authenticated user can save city progress', function () {
 
     $response->assertOk()
         ->assertJsonPath('status', 'saved')
-        ->assertJsonPath('city.money', 2350)
-        ->assertJsonPath('city.population', 5)
-        ->assertJsonPath('city.xp', 15);
+        ->assertJsonMissingPath('city');
 
     $city->refresh();
     expect($city->money)->toBe(2350)
@@ -102,7 +106,10 @@ test('updating city accepts money above the former treasury cap', function () {
         ]);
 
     $response->assertOk()
-        ->assertJsonPath('city.money', 2_000_000);
+        ->assertJsonPath('status', 'saved')
+        ->assertJsonMissingPath('city');
+
+    expect($user->fresh()->city->money)->toBe(2_000_000);
 });
 
 test('updating city rejects level above the mayor cap', function () {
@@ -237,6 +244,8 @@ test('authenticated user can reset their city to start a new metropolis', functi
         ->and($city->population)->toBe(0)
         ->and($city->level)->toBe(1)
         ->and($city->map_expansions)->toBe(0)
+        ->and($city->missions['claimed'] ?? null)->toBe([])
+        ->and($city->missions['collects'] ?? null)->toBe(0)
         ->and($city->grid_data)->toBeEmpty();
 });
 
@@ -360,4 +369,147 @@ test('NotifyBuildingCompletedJob marks building constructed and dispatches broad
             && $event->tileKey === '3,7'
             && $event->broadcastAs() === 'building.completed';
     });
+});
+
+test('saving city progress stores mission claims and does not drop them', function () {
+    $user = User::factory()->create();
+    $city = City::factory()->create(['user_id' => $user->id]);
+
+    $payload = [
+        'money' => 2500,
+        'population' => 0,
+        'xp' => 0,
+        'level' => 1,
+        'grid_data' => [],
+    ];
+
+    $this->actingAs($user)->putJson(route('city.update'), [
+        ...$payload,
+        'missions' => [
+            'claimed' => ['pave_roads', 'not-a-mission'],
+            'collects' => 5,
+        ],
+    ])->assertOk()->assertJsonMissingPath('city');
+
+    $city->refresh();
+    expect($city->missions['claimed'])->toBe(['pave_roads'])
+        ->and($city->missions['collects'])->toBe(5);
+
+    $this->actingAs($user)->putJson(route('city.update'), [
+        ...$payload,
+        'missions' => [
+            'claimed' => [],
+            'collects' => 1,
+        ],
+    ])->assertOk();
+
+    $city->refresh();
+    expect($city->missions['claimed'])->toBe(['pave_roads'])
+        ->and($city->missions['collects'])->toBe(5);
+});
+
+test('resetting a city clears claimed missions', function () {
+    $user = User::factory()->create();
+    $city = City::factory()->create([
+        'user_id' => $user->id,
+        'missions' => [
+            'claimed' => ['pave_roads'],
+            'collects' => 4,
+        ],
+    ]);
+
+    $this->actingAs($user)->postJson(route('city.reset'), [
+        'name' => 'Fresh Start',
+    ])->assertOk();
+
+    $city->refresh();
+    expect($city->missions['claimed'])->toBe([])
+        ->and($city->missions['collects'])->toBe(0);
+});
+
+test('saving a new construction queues completion with the catalog duration', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    City::factory()->create([
+        'user_id' => $user->id,
+        'level' => 1,
+    ]);
+
+    $this->actingAs($user)->putJson(route('city.update'), [
+        'money' => 2000,
+        'population' => 0,
+        'xp' => 15,
+        'level' => 1,
+        'grid_data' => [
+            '2,2' => [
+                'type' => 'small_house',
+                'isConstructed' => false,
+            ],
+        ],
+    ])->assertOk()->assertJsonPath('status', 'saved');
+
+    $expected = (int) config('game.buildings.small_house.build_time');
+
+    Queue::assertPushed(NotifyBuildingCompletedJob::class, function ($job) use ($user, $expected) {
+        expect($job->delay)->not->toBeNull();
+        $seconds = (int) abs(now()->diffInSeconds($job->delay));
+
+        return $job->userId === $user->id
+            && $job->buildingType === 'small_house'
+            && $job->buildingName === 'Cozy Cottage'
+            && $job->tileKey === '2,2'
+            && abs($seconds - $expected) <= 2;
+    });
+});
+
+test('saving the same construction twice queues one completion job', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    City::factory()->create(['user_id' => $user->id]);
+
+    $payload = [
+        'money' => 2000,
+        'population' => 0,
+        'xp' => 0,
+        'level' => 1,
+        'grid_data' => [
+            '2,2' => [
+                'type' => 'small_house',
+                'isConstructed' => false,
+            ],
+        ],
+    ];
+
+    $this->actingAs($user)->putJson(route('city.update'), $payload)->assertOk();
+    $this->actingAs($user)->putJson(route('city.update'), $payload)->assertOk();
+
+    Queue::assertPushed(NotifyBuildingCompletedJob::class, 1);
+});
+
+test('saving a locked building does not queue construction', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $city = City::factory()->create([
+        'user_id' => $user->id,
+        'level' => 1,
+    ]);
+
+    $this->actingAs($user)->putJson(route('city.update'), [
+        'money' => 2500,
+        'population' => 0,
+        'xp' => 0,
+        'level' => 1,
+        'grid_data' => [
+            '3,3' => [
+                'type' => 'villa',
+                'isConstructed' => false,
+            ],
+        ],
+    ])->assertOk();
+
+    Queue::assertNothingPushed();
+    expect($city->refresh()->grid_data)->toHaveKey('3,3');
 });

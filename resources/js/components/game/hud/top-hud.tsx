@@ -9,6 +9,7 @@ import {
     RotateCcw,
     RotateCw,
     Save,
+    ScrollText,
     Sparkles,
     Users,
     Volume2,
@@ -34,6 +35,8 @@ interface TopHudProps {
     isExpandingMap: boolean;
     saveStatus: SaveStatus;
     soundEnabled: boolean;
+    claimableMissionCount: number;
+    onOpenMissions: () => void;
     onSave: () => void;
     onNewCity: () => void;
     onCollectAll: () => void;
@@ -60,6 +63,8 @@ export default function TopHud({
     isExpandingMap,
     saveStatus,
     soundEnabled,
+    claimableMissionCount,
+    onOpenMissions,
     onSave,
     onNewCity,
     onCollectAll,
@@ -197,6 +202,20 @@ export default function TopHud({
 
             {/* Top Right Quick Controls */}
             <div className="pointer-events-auto flex items-center gap-1.5 rounded-2xl border border-slate-700/60 bg-slate-900/85 p-1.5 shadow-2xl backdrop-blur-md">
+                <button
+                    type="button"
+                    onClick={onOpenMissions}
+                    className="relative flex items-center gap-1 rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
+                    title={t('hud.missions')}
+                >
+                    <ScrollText className="h-4 w-4 text-amber-300" />
+                    <span className="hidden text-xs font-bold sm:inline">
+                        {t('hud.missions')}
+                    </span>
+                    {claimableMissionCount > 0 && (
+                        <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-400" />
+                    )}
+                </button>
                 <button
                     onClick={onSave}
                     className="flex items-center gap-1 rounded-xl p-2.5 text-slate-300 transition-all hover:bg-slate-800 hover:text-white"

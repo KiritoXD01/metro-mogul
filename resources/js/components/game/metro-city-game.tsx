@@ -33,6 +33,7 @@ import type {
     GridData,
     GridItem,
     MetroCityGameProps,
+    MissionState,
     SaveStatus,
 } from './types';
 import { playSound } from './audio';
@@ -42,9 +43,11 @@ import TopHud from './hud/top-hud';
 import ShopToolbar from './hud/shop-toolbar';
 import type { ShopCategory } from './hud/shop-toolbar';
 import InspectionModal from './hud/inspection-modal';
+import MissionsPanel from './hud/missions-panel';
 import NewCityModal from './hud/new-city-modal';
 import ProfileSettingsModal from './hud/profile-settings-modal';
 import FeedbackModal from './hud/feedback-modal';
+import { claimableMissionCount, isMissionClaimable } from './missions';
 import { useTranslation } from '@/hooks/use-translation';
 
 // Backwards-compatible re-exports for existing importers.
@@ -62,9 +65,35 @@ export type {
     GridData,
     GridItem,
     MetroCityGameProps,
+    MissionState,
     RoadConnections,
     SaveStatus,
 } from './types';
+
+const COLLECT_SAVE_DELAY_MS = 1500;
+
+function createSkyTexture(): THREE.Texture | null {
+    const canvas = document.createElement('canvas');
+    canvas.width = 4;
+    canvas.height = 256;
+    const context = canvas.getContext('2d');
+    if (!context) {
+        return null;
+    }
+
+    const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#6eb6ef');
+    gradient.addColorStop(0.45, '#b9e2fb');
+    gradient.addColorStop(1, '#e7f6df');
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.magFilter = THREE.LinearFilter;
+
+    return texture;
+}
 
 export default function MetroCityGame({
     initialCity,
@@ -97,6 +126,15 @@ export default function MetroCityGame({
     const [level, setLevel] = useState(() =>
         Math.min(maxLevel, initialCity.level ?? 1),
     );
+    const [mapExpansions, setMapExpansions] = useState(
+        initialCity.mapExpansions ?? 0,
+    );
+    const [missions, setMissions] = useState<MissionState>(() => ({
+        claimed: initialCity.missions?.claimed ?? [],
+        collects: initialCity.missions?.collects ?? 0,
+    }));
+    const missionCatalog = initialCity.missionCatalog ?? [];
+    const [missionsOpen, setMissionsOpen] = useState(false);
     const [gridSize, setGridSize] = useState(
         initialCity.gridSize ?? DEFAULT_GRID_SIZE,
     );
@@ -169,7 +207,8 @@ export default function MetroCityGame({
     const prevGridRef = useRef<GridData | null>(null);
     const prevGridMeshesRef = useRef<GridData>({});
     const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const collectAllSavePendingRef = useRef(false);
+    const pendingSaveModeRef = useRef<'immediate' | 'debounced' | null>(null);
+    const claimedMissionIdsRef = useRef(new Set(missions.claimed));
     const gameStateRef = useRef({
         cityName,
         money,
@@ -177,6 +216,7 @@ export default function MetroCityGame({
         xp,
         level,
         gridData,
+        missions,
     });
 
     // Canvas Refs
@@ -212,8 +252,9 @@ export default function MetroCityGame({
             xp,
             level,
             gridData,
+            missions,
         };
-    }, [cityName, money, population, xp, level, gridData]);
+    }, [cityName, money, population, xp, level, gridData, missions]);
 
     // WebSocket / Reverb Echo listener for queued BuildingCompletedEvent
     useEffect(() => {
@@ -282,6 +323,7 @@ export default function MetroCityGame({
             xp: state.xp,
             level: state.level,
             gridData: state.gridData,
+            missions: state.missions,
         });
 
         if (currentStateStr === lastSavedRef.current) {
@@ -297,6 +339,7 @@ export default function MetroCityGame({
                 xp: state.xp,
                 level: state.level,
                 grid_data: state.gridData,
+                missions: state.missions,
             });
             lastSavedRef.current = currentStateStr;
             setSaveStatus('saved');
@@ -307,7 +350,7 @@ export default function MetroCityGame({
     }, [onSave]);
 
     const scheduleSave = useCallback(
-        (options?: { immediate?: boolean }) => {
+        (options?: { immediate?: boolean; delayMs?: number }) => {
             if (saveDebounceRef.current) {
                 clearTimeout(saveDebounceRef.current);
                 saveDebounceRef.current = null;
@@ -321,10 +364,16 @@ export default function MetroCityGame({
             saveDebounceRef.current = setTimeout(() => {
                 saveDebounceRef.current = null;
                 void triggerSave();
-            }, 400);
+            }, options?.delayMs ?? 400);
         },
         [triggerSave],
     );
+
+    const requestSave = useCallback((mode: 'immediate' | 'debounced') => {
+        if (pendingSaveModeRef.current !== 'immediate') {
+            pendingSaveModeRef.current = mode;
+        }
+    }, []);
 
     useEffect(() => {
         return () => {
@@ -333,6 +382,31 @@ export default function MetroCityGame({
             }
         };
     }, []);
+
+    useEffect(() => {
+        const flushPendingSave = () => {
+            if (!saveDebounceRef.current) {
+                return;
+            }
+            clearTimeout(saveDebounceRef.current);
+            saveDebounceRef.current = null;
+            void triggerSave();
+        };
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                flushPendingSave();
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        window.addEventListener('pagehide', flushPendingSave);
+        return () => {
+            document.removeEventListener(
+                'visibilitychange',
+                onVisibilityChange,
+            );
+            window.removeEventListener('pagehide', flushPendingSave);
+        };
+    }, [triggerSave]);
 
     // Autosave when a building finishes construction.
     useEffect(() => {
@@ -358,12 +432,17 @@ export default function MetroCityGame({
     }, [gridData, scheduleSave]);
 
     useEffect(() => {
-        if (!collectAllSavePendingRef.current) {
+        const mode = pendingSaveModeRef.current;
+        if (!mode) {
             return;
         }
-        collectAllSavePendingRef.current = false;
-        scheduleSave({ immediate: true });
-    }, [gridData, money, xp, level, scheduleSave]);
+        pendingSaveModeRef.current = null;
+        scheduleSave(
+            mode === 'immediate'
+                ? { immediate: true }
+                : { delayMs: COLLECT_SAVE_DELAY_MS },
+        );
+    }, [gridData, money, population, xp, level, missions, scheduleSave]);
 
     // Three.js Mount Setup
     useEffect(() => {
@@ -375,8 +454,9 @@ export default function MetroCityGame({
 
         // 1. Scene Setup
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87ceeb);
-        scene.fog = new THREE.FogExp2(0x87ceeb, 0.015);
+        const skyTexture = createSkyTexture();
+        scene.background = skyTexture ?? new THREE.Color(0xb9e2fb);
+        scene.fog = new THREE.FogExp2(0xdff3ea, 0.012);
         sceneRef.current = scene;
 
         // 2. Isometric Orthographic Camera
@@ -411,8 +491,11 @@ export default function MetroCityGame({
         rendererRef.current = renderer;
 
         // 4. Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
         scene.add(ambientLight);
+
+        const hemisphere = new THREE.HemisphereLight(0xd6efff, 0x6d8f45, 0.55);
+        scene.add(hemisphere);
 
         const dirLight = new THREE.DirectionalLight(0xfffaed, 0.85);
         dirLight.position.set(25, 40, 20);
@@ -431,23 +514,30 @@ export default function MetroCityGame({
         // 5. Ground Grid Base
         const gridGroup = new THREE.Group();
         gridTilesRef.current = new Map();
+        const grassGeometry = new THREE.BoxGeometry(0.96, 0.1, 0.96);
+        const grassTones = [0x86c14a, 0x7ab844, 0x93c95a];
+        const grassMaterials = grassTones.map(
+            (color) =>
+                new THREE.MeshStandardMaterial({
+                    color,
+                    roughness: 0.9,
+                }),
+        );
         for (let x = 0; x < gridSize; x++) {
             for (let z = 0; z < gridSize; z++) {
-                const tileGeo = new THREE.BoxGeometry(0.96, 0.1, 0.96);
-                const isAlternate = (x + z) % 2 === 0;
-                const baseColor = isAlternate ? 0x82c91e : 0x74b816;
-                const tileMat = new THREE.MeshStandardMaterial({
-                    color: baseColor,
-                    roughness: 0.8,
-                });
-                const tileMesh = new THREE.Mesh(tileGeo, tileMat);
+                const tone = (x * 2 + z) % grassMaterials.length;
+                const tileMesh = new THREE.Mesh(
+                    grassGeometry,
+                    grassMaterials[tone],
+                );
                 tileMesh.position.set(x + 0.5, -0.05, z + 0.5);
                 tileMesh.receiveShadow = true;
                 tileMesh.userData = {
                     gridX: x,
                     gridZ: z,
                     isTile: true,
-                    baseColor,
+                    baseColor: grassTones[tone],
+                    sharedMaterial: grassMaterials[tone],
                 };
                 gridGroup.add(tileMesh);
                 gridTilesRef.current.set(`${x},${z}`, tileMesh);
@@ -629,6 +719,9 @@ export default function MetroCityGame({
             window.removeEventListener('resize', handleResize);
             if (domEl) domEl.removeEventListener('mousemove', handleMouseMove);
             renderer.dispose();
+            grassGeometry.dispose();
+            grassMaterials.forEach((material) => material.dispose());
+            skyTexture?.dispose();
             if (
                 renderer.domElement &&
                 currentMount.contains(renderer.domElement)
@@ -720,11 +813,19 @@ export default function MetroCityGame({
 
     useEffect(() => {
         const resetTileMaterial = (mesh: THREE.Mesh) => {
-            const mat = mesh.material as THREE.MeshStandardMaterial;
+            const shared = mesh.userData.sharedMaterial as
+                | THREE.MeshStandardMaterial
+                | undefined;
+            const current = mesh.material as THREE.MeshStandardMaterial;
+            if (shared && current !== shared) {
+                mesh.material = shared;
+                current.dispose();
+                return;
+            }
             const baseColor = mesh.userData.baseColor as number;
-            mat.color.setHex(baseColor);
-            mat.emissive.setHex(0x000000);
-            mat.emissiveIntensity = 0;
+            current.color.setHex(baseColor);
+            current.emissive.setHex(0x000000);
+            current.emissiveIntensity = 0;
         };
 
         const previousKey = highlightedTileKeyRef.current;
@@ -747,7 +848,6 @@ export default function MetroCityGame({
             return;
         }
 
-        const mat = mesh.material as THREE.MeshStandardMaterial;
         const existing = gridData[key];
         let emissive = 0x38bdf8;
 
@@ -764,6 +864,15 @@ export default function MetroCityGame({
             emissive = 0x34d399;
         }
 
+        const shared = mesh.userData.sharedMaterial as
+            | THREE.MeshStandardMaterial
+            | undefined;
+        const mat = shared
+            ? shared.clone()
+            : (mesh.material as THREE.MeshStandardMaterial);
+        if (shared) {
+            mesh.material = mat;
+        }
         mat.emissive.setHex(emissive);
         mat.emissiveIntensity = 0.35;
     }, [hoverTile, selectedTool, gridData, money, level]);
@@ -926,7 +1035,7 @@ export default function MetroCityGame({
                     e.clientX,
                     e.clientY,
                 );
-                scheduleSave({ immediate: true });
+                requestSave('immediate');
             }
             return;
         }
@@ -992,31 +1101,7 @@ export default function MetroCityGame({
 
                     playSound('build', soundEnabled);
                     spawnFloatingText(`-$${bDef.cost}`, e.clientX, e.clientY);
-
-                    // Dispatch Laravel Background Job for in-game notification
-                    if (!isImmediate) {
-                        void fetch('/city/construction/start', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN':
-                                    (
-                                        document.querySelector(
-                                            'meta[name="csrf-token"]',
-                                        ) as HTMLMetaElement
-                                    )?.content || '',
-                                Accept: 'application/json',
-                            },
-                            body: JSON.stringify({
-                                tile_key: key,
-                                building_type: selectedTool,
-                                building_name: bDef.name,
-                                duration_seconds: buildDuration,
-                            }),
-                        });
-                    }
-
-                    scheduleSave({ immediate: true });
+                    requestSave('immediate');
                 }
             }
             return;
@@ -1047,7 +1132,11 @@ export default function MetroCityGame({
                     playSound('collect', soundEnabled);
                     spawnFloatingText(`+$${reward}`, e.clientX, e.clientY);
                     setSelectedBuilding(null);
-                    scheduleSave({ immediate: true });
+                    setMissions((prev) => ({
+                        ...prev,
+                        collects: prev.collects + 1,
+                    }));
+                    requestSave('debounced');
                 }
             } else {
                 // Case B: Show Inspection Modal (either Under Construction or in Production)
@@ -1134,7 +1223,11 @@ export default function MetroCityGame({
             window.innerHeight / 2,
         );
         setSelectedBuilding(null);
-        scheduleSave({ immediate: true });
+        setMissions((prev) => ({
+            ...prev,
+            collects: prev.collects + 1,
+        }));
+        requestSave('debounced');
     };
 
     const handleDemolishBuilding = (key: string) => {
@@ -1166,7 +1259,7 @@ export default function MetroCityGame({
             window.innerWidth / 2,
             window.innerHeight / 2,
         );
-        scheduleSave({ immediate: true });
+        requestSave('immediate');
     };
 
     const handleLockedBuilding = (item: BuildingDefinition) => {
@@ -1242,7 +1335,11 @@ export default function MetroCityGame({
             };
         });
 
-        collectAllSavePendingRef.current = true;
+        setMissions((prev) => ({
+            ...prev,
+            collects: prev.collects + collected,
+        }));
+        requestSave('debounced');
         setGridData(updated);
         setMoney((prev) => ensureMoney(prev + totalReward));
         if (totalXp > 0) {
@@ -1289,6 +1386,7 @@ export default function MetroCityGame({
             setIsExpandingMap(true);
             const city = await onExpandMap();
             setMoney(ensureMoney(city.money));
+            setMapExpansions(city.mapExpansions ?? mapExpansions + 1);
             setGridSize(city.gridSize ?? gridSize);
             setCityLimits(city.limits);
             playSound('levelup', soundEnabled);
@@ -1328,10 +1426,55 @@ export default function MetroCityGame({
                 : undefined,
         );
         setGridData({});
+        setMapExpansions(0);
+        setMissions({ claimed: [], collects: 0 });
+        claimedMissionIdsRef.current.clear();
+        setMissionsOpen(false);
         setSelectedBuilding(null);
         setSelectedTool(null);
         setIsResetModalOpen(false);
         setNewCityNameInput('');
+    };
+
+    const missionWorld = useMemo(
+        () => ({
+            gridData,
+            population,
+            level,
+            mapExpansions,
+            collects: missions.collects,
+        }),
+        [gridData, population, level, mapExpansions, missions.collects],
+    );
+
+    const readyToClaim = useMemo(
+        () => claimableMissionCount(missionCatalog, missions, missionWorld),
+        [missionCatalog, missions, missionWorld],
+    );
+
+    const handleClaimMission = (id: string) => {
+        const definition = missionCatalog.find((mission) => mission.id === id);
+        if (
+            !definition ||
+            claimedMissionIdsRef.current.has(id) ||
+            !isMissionClaimable(definition, missions, missionWorld)
+        ) {
+            return;
+        }
+
+        claimedMissionIdsRef.current.add(id);
+        setMoney((prev) => ensureMoney(prev + definition.money));
+        if (definition.xp > 0) {
+            addXP(definition.xp);
+        }
+        setMissions((prev) => ({
+            ...prev,
+            claimed: prev.claimed.includes(id)
+                ? prev.claimed
+                : [...prev.claimed, id],
+        }));
+        requestSave('immediate');
+        playSound('collect', soundEnabled);
     };
 
     const canvasCursor = useMemo(
@@ -1368,6 +1511,8 @@ export default function MetroCityGame({
                 isExpandingMap={isExpandingMap}
                 saveStatus={saveStatus}
                 soundEnabled={soundEnabled}
+                claimableMissionCount={readyToClaim}
+                onOpenMissions={() => setMissionsOpen(true)}
                 onSave={() => {
                     void triggerSave();
                 }}
@@ -1383,6 +1528,16 @@ export default function MetroCityGame({
                 onZoomOut={() => adjustZoom(-0.2)}
                 onResetCamera={resetCamera}
             />
+
+            {missionsOpen && (
+                <MissionsPanel
+                    catalog={missionCatalog}
+                    missions={missions}
+                    world={missionWorld}
+                    onClose={() => setMissionsOpen(false)}
+                    onClaim={handleClaimMission}
+                />
+            )}
 
             <ShopToolbar
                 selectedTool={selectedTool}
